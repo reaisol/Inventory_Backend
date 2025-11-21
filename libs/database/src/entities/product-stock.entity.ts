@@ -13,6 +13,10 @@ import { StockType } from './enums/stock-type.enum';
 @Entity({ name: 'product_stocks' })
 @Index(['productId', 'createdAt'])
 @Index(['referenceType', 'referenceId'])
+@Index(['productId']) // FK index for joins
+@Index(['stockType']) // For filtering by stock type
+@Index(['createdAt']) // For sorting by date
+@Index(['productId', 'stockType', 'createdAt']) // Composite for product stock history queries
 export class ProductStock {
   @PrimaryGeneratedColumn()
   id: number;

@@ -13,6 +13,8 @@ import { Role } from './role.entity';
 
 @Entity({ name: 'users' })
 @Index(['email'], { unique: true })
+@Index(['name']) // For search queries
+@Index(['createdAt']) // For sorting by creation date
 export class User {
   @PrimaryGeneratedColumn()
   id: number;

@@ -25,7 +25,6 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
 import { PriceCalculationResponseDto } from './dto/price-calculation-response.dto';
-import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto';
 import {
   JwtAuthGuard,
   PoliciesGuard,
@@ -39,6 +38,7 @@ import {
   UpdateProductPolicyHandler,
   DeleteProductPolicyHandler,
 } from './handlers/product-policy.handler';
+import { ProductQueryPaginationDto } from './dto/product-query-pagination.dto';
 
 @ApiTags('Products')
 @Controller('products')
@@ -81,17 +81,8 @@ export class ProductsController {
     description: 'List of products retrieved successfully',
   })
   @CheckPolicies(new ReadProductPolicyHandler())
-  async findAll(
-    @Query() paginationQuery: PaginationQueryDto,
-    @Query('metalTypeId', ParseIntPipe) metalTypeId?: number,
-    @Query('categoryId', ParseIntPipe) categoryId?: number,
-    @Query('status') status?: ProductStatus,
-  ) {
-    const result = await this.productsService.findAll(paginationQuery, {
-      metalTypeId,
-      categoryId,
-      status,
-    });
+  async findAll(@Query() paginationQuery: ProductQueryPaginationDto) {
+    const result = await this.productsService.findAll(paginationQuery);
     return {
       data: result.data.map((product) =>
         plainToClass(ProductResponseDto, product),

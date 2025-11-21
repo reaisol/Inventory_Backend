@@ -10,7 +10,6 @@ import {
   OrderItem,
   Product,
   Customer,
-  User,
   Exchange,
   MetalPurity,
   MetalPrice,
@@ -19,7 +18,7 @@ import {
   StockType,
 } from '@app/database';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto';
+import { OrderQueryPaginationDto } from './dto/order-query-pagination.dto';
 import {
   PaginatedResponse,
   createPaginationMeta,
@@ -227,15 +226,19 @@ export class OrdersService {
   }
 
   async findAll(
-    paginationQuery: PaginationQueryDto,
-    filters?: {
-      customerId?: number;
-      status?: OrderStatus;
-      startDate?: Date;
-      endDate?: Date;
-    },
+    paginationQuery: OrderQueryPaginationDto,
   ): Promise<PaginatedResponse<Order>> {
-    const { page, limit, sortBy, sortOrder, search } = paginationQuery;
+    const {
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      search,
+      customerId,
+      status,
+      startDate,
+      endDate,
+    } = paginationQuery;
     const skip = (page - 1) * limit;
 
     const query = this.orderRepository
@@ -252,25 +255,25 @@ export class OrdersService {
       .addSelect('user.createdAt')
       .addSelect('user.updatedAt'); // Explicitly select only safe user fields, excluding password
 
-    if (filters?.customerId) {
+    if (customerId) {
       query.andWhere('order.customerId = :customerId', {
-        customerId: filters.customerId,
+        customerId: customerId,
       });
     }
 
-    if (filters?.status) {
-      query.andWhere('order.status = :status', { status: filters.status });
+    if (status) {
+      query.andWhere('order.status = :status', { status: status });
     }
 
-    if (filters?.startDate) {
+    if (startDate) {
       query.andWhere('order.orderDate >= :startDate', {
-        startDate: filters.startDate,
+        startDate: new Date(startDate),
       });
     }
 
-    if (filters?.endDate) {
+    if (endDate) {
       query.andWhere('order.orderDate <= :endDate', {
-        endDate: filters.endDate,
+        endDate: new Date(endDate),
       });
     }
 

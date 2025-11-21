@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import {
   Product,
   MetalType,
@@ -15,7 +15,6 @@ import {
 } from '@app/database';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto';
 import {
   PaginatedResponse,
   createPaginationMeta,
@@ -26,6 +25,7 @@ import {
 } from '../../utils/product-id-generator';
 import { calculateProductPrice } from '../../utils/price-calculator';
 import { MetalsService } from '../metals/metals.service';
+import { ProductQueryPaginationDto } from './dto/product-query-pagination.dto';
 
 @Injectable()
 export class ProductsService {
@@ -137,14 +137,18 @@ export class ProductsService {
   }
 
   async findAll(
-    paginationQuery: PaginationQueryDto,
-    filters?: {
-      metalTypeId?: number;
-      categoryId?: number;
-      status?: ProductStatus;
-    },
+    paginationQuery: ProductQueryPaginationDto,
   ): Promise<PaginatedResponse<Product>> {
-    const { page, limit, sortBy, sortOrder, search } = paginationQuery;
+    const {
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      search,
+      metalTypeId,
+      categoryId,
+      status,
+    } = paginationQuery;
     const skip = (page - 1) * limit;
 
     const query = this.productRepository
@@ -154,20 +158,20 @@ export class ProductsService {
       .leftJoinAndSelect('product.category', 'category');
 
     // Apply filters
-    if (filters?.metalTypeId) {
+    if (metalTypeId) {
       query.andWhere('product.metalTypeId = :metalTypeId', {
-        metalTypeId: filters.metalTypeId,
+        metalTypeId: metalTypeId,
       });
     }
 
-    if (filters?.categoryId) {
+    if (categoryId) {
       query.andWhere('product.categoryId = :categoryId', {
-        categoryId: filters.categoryId,
+        categoryId: categoryId,
       });
     }
 
-    if (filters?.status) {
-      query.andWhere('product.status = :status', { status: filters.status });
+    if (status) {
+      query.andWhere('product.status = :status', { status: status });
     }
 
     // Apply search
@@ -196,7 +200,7 @@ export class ProductsService {
     const data = await query.getMany();
 
     // Check and update low stock status
-    await this.updateLowStockStatus();
+    // await this.updateLowStockStatus();
 
     const meta = createPaginationMeta(page, limit, totalItems);
 
@@ -330,7 +334,10 @@ export class ProductsService {
     effectiveDate: Date;
   }> {
     const product = await this.findOne(productId);
-
+    // if product sold, throw error
+    if (product.status === ProductStatus.SOLD) {
+      throw new BadRequestException('Product is already sold');
+    }
     // Get current metal price for the product's metal purity
     const metalPrice = await this.metalsService.getCurrentMetalPrice(
       product.metalPurityId,

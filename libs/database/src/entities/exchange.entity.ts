@@ -14,6 +14,8 @@ import { ExchangeType } from './enums/exchange-type.enum';
 @Entity({ name: 'exchanges' })
 @Index(['orderId'])
 @Index(['metalPurityId'])
+@Index(['orderId', 'metalPurityId']) // Composite for order-exchange lookups
+@Index(['exchangeType']) // For filtering by exchange type
 export class Exchange {
   @PrimaryGeneratedColumn()
   id: number;

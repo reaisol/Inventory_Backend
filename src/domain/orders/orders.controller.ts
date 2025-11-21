@@ -21,7 +21,7 @@ import {
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderResponseDto } from './dto/order-response.dto';
-import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto';
+import { OrderQueryPaginationDto } from './dto/order-query-pagination.dto';
 import {
   JwtAuthGuard,
   PoliciesGuard,
@@ -78,19 +78,8 @@ export class OrdersController {
     description: 'List of orders retrieved successfully',
   })
   @CheckPolicies(new ReadOrderPolicyHandler())
-  async findAll(
-    @Query() paginationQuery: PaginationQueryDto,
-    @Query('customerId', ParseIntPipe) customerId?: number,
-    @Query('status') status?: OrderStatus,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    const result = await this.ordersService.findAll(paginationQuery, {
-      customerId,
-      status,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
-    });
+  async findAll(@Query() paginationQuery: OrderQueryPaginationDto) {
+    const result = await this.ordersService.findAll(paginationQuery);
     return {
       data: result.data.map((order) => plainToClass(OrderResponseDto, order)),
       meta: result.meta,

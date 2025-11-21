@@ -13,6 +13,8 @@ import { MetalPurity } from './metal-purity.entity';
 @Entity({ name: 'metal_prices' })
 @Index(['metalPurityId', 'effectiveDate'])
 @Index(['isActive', 'effectiveDate'])
+@Index(['metalPurityId', 'isActive', 'effectiveDate']) // Composite for active price lookup
+@Index(['effectiveDate']) // For date range queries
 export class MetalPrice {
   @PrimaryGeneratedColumn()
   id: number;

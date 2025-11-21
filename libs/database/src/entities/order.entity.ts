@@ -22,6 +22,8 @@ import { PaymentMethod } from './enums/payment-method.enum';
 @Index(['status'])
 @Index(['customerId'])
 @Index(['userId'])
+@Index(['orderDate', 'status']) // Composite for date range queries with status filter
+@Index(['createdAt']) // For sorting by creation date
 export class Order {
   @PrimaryGeneratedColumn()
   id: number;

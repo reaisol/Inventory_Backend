@@ -13,6 +13,7 @@ import { Product } from './product.entity';
 @Entity({ name: 'order_items' })
 @Index(['orderId'])
 @Index(['productId'])
+@Index(['orderId', 'productId']) // Composite for order-item lookups
 export class OrderItem {
   @PrimaryGeneratedColumn()
   id: number;

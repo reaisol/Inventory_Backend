@@ -7,6 +7,7 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { MetalType } from './metal-type.entity';
 import { MetalPrice } from './metal-price.entity';
@@ -14,6 +15,9 @@ import { Product } from './product.entity';
 import { Exchange } from './exchange.entity';
 
 @Entity({ name: 'metal_purities' })
+@Index(['metalTypeId']) // FK index for joins
+@Index(['code']) // For lookup by code
+@Index(['metalTypeId', 'code']) // Composite for common queries (metal type + purity code)
 export class MetalPurity {
   @PrimaryGeneratedColumn()
   id: number;

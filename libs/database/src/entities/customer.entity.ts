@@ -11,6 +11,9 @@ import { Order } from './order.entity';
 
 @Entity({ name: 'customers' })
 @Index(['email'], { unique: true, where: 'email IS NOT NULL' })
+@Index(['name']) // For search queries
+@Index(['phone']) // For search queries
+@Index(['createdAt']) // For sorting by creation date
 export class Customer {
   @PrimaryGeneratedColumn()
   id: number;

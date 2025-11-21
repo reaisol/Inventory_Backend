@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Repository } from 'typeorm';
 import {
   Order,
   OrderItem,
@@ -112,18 +112,11 @@ export class DashboardService {
         : 0;
 
     // Gold and Silver Sold
-    const goldType = await this.metalTypeRepository.findOne({
-      where: { code: 'GLD' },
-    });
-    const silverType = await this.metalTypeRepository.findOne({
-      where: { code: 'SLV' },
-    });
-
     const todayOrderItems = await this.orderItemRepository
       .createQueryBuilder('orderItem')
-      .leftJoin('orderItem.order', 'order')
-      .leftJoin('orderItem.product', 'product')
-      .leftJoin('product.metalType', 'metalType')
+      .leftJoinAndSelect('orderItem.order', 'order')
+      .leftJoinAndSelect('orderItem.product', 'product')
+      .leftJoinAndSelect('product.metalType', 'metalType')
       .where('order.orderDate >= :today', { today })
       .andWhere('order.orderDate < :tomorrow', { tomorrow })
       .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
@@ -133,15 +126,12 @@ export class DashboardService {
     let silverSoldToday = 0;
 
     for (const item of todayOrderItems) {
-      const product = await this.productRepository.findOne({
-        where: { id: item.productId },
-        relations: ['metalType'],
-      });
-      if (product && product.metalType) {
-        if (product.metalType.code === 'GLD') {
-          goldSoldToday += Number(product.grossWeightGm);
-        } else if (product.metalType.code === 'SLV') {
-          silverSoldToday += Number(product.grossWeightGm);
+      if (item.product && item.product.metalType) {
+        const metalCode = item.product.metalType.code.toUpperCase();
+        if (metalCode === 'GOLD' || metalCode === 'GLD') {
+          goldSoldToday += Number(item.product.grossWeightGm || 0);
+        } else if (metalCode === 'SILVER' || metalCode === 'SLV') {
+          silverSoldToday += Number(item.product.grossWeightGm || 0);
         }
       }
     }
@@ -149,7 +139,9 @@ export class DashboardService {
     // Get current month and last month gold/silver sold
     const currentMonthOrderItems = await this.orderItemRepository
       .createQueryBuilder('orderItem')
-      .leftJoin('orderItem.order', 'order')
+      .leftJoinAndSelect('orderItem.order', 'order')
+      .leftJoinAndSelect('orderItem.product', 'product')
+      .leftJoinAndSelect('product.metalType', 'metalType')
       .where('order.orderDate >= :start', { start: currentMonthStart })
       .andWhere('order.orderDate <= :end', { end: currentMonthEnd })
       .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
@@ -157,7 +149,9 @@ export class DashboardService {
 
     const lastMonthOrderItems = await this.orderItemRepository
       .createQueryBuilder('orderItem')
-      .leftJoin('orderItem.order', 'order')
+      .leftJoinAndSelect('orderItem.order', 'order')
+      .leftJoinAndSelect('orderItem.product', 'product')
+      .leftJoinAndSelect('product.metalType', 'metalType')
       .where('order.orderDate >= :start', { start: lastMonthStart })
       .andWhere('order.orderDate <= :end', { end: lastMonthEnd })
       .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
@@ -169,29 +163,23 @@ export class DashboardService {
     let lastMonthSilver = 0;
 
     for (const item of currentMonthOrderItems) {
-      const product = await this.productRepository.findOne({
-        where: { id: item.productId },
-        relations: ['metalType'],
-      });
-      if (product && product.metalType) {
-        if (product.metalType.code === 'GLD') {
-          currentMonthGold += Number(product.grossWeightGm);
-        } else if (product.metalType.code === 'SLV') {
-          currentMonthSilver += Number(product.grossWeightGm);
+      if (item.product && item.product.metalType) {
+        const metalCode = item.product.metalType.code.toUpperCase();
+        if (metalCode === 'GOLD' || metalCode === 'GLD') {
+          currentMonthGold += Number(item.product.grossWeightGm || 0);
+        } else if (metalCode === 'SILVER' || metalCode === 'SLV') {
+          currentMonthSilver += Number(item.product.grossWeightGm || 0);
         }
       }
     }
 
     for (const item of lastMonthOrderItems) {
-      const product = await this.productRepository.findOne({
-        where: { id: item.productId },
-        relations: ['metalType'],
-      });
-      if (product && product.metalType) {
-        if (product.metalType.code === 'GLD') {
-          lastMonthGold += Number(product.grossWeightGm);
-        } else if (product.metalType.code === 'SLV') {
-          lastMonthSilver += Number(product.grossWeightGm);
+      if (item.product && item.product.metalType) {
+        const metalCode = item.product.metalType.code.toUpperCase();
+        if (metalCode === 'GOLD' || metalCode === 'GLD') {
+          lastMonthGold += Number(item.product.grossWeightGm || 0);
+        } else if (metalCode === 'SILVER' || metalCode === 'SLV') {
+          lastMonthSilver += Number(item.product.grossWeightGm || 0);
         }
       }
     }
@@ -208,30 +196,33 @@ export class DashboardService {
     // Old Gold Credit
     const todayExchanges = await this.exchangeRepository
       .createQueryBuilder('exchange')
-      .leftJoin('exchange.order', 'order')
+      .leftJoinAndSelect('exchange.order', 'order')
       .where('order.orderDate >= :today', { today })
       .andWhere('order.orderDate < :tomorrow', { tomorrow })
+      .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
       .andWhere('exchange.exchangeType = :type', { type: ExchangeType.GOLD })
       .getMany();
 
     const oldGoldCreditToday = todayExchanges.reduce(
-      (sum, exchange) => sum + Number(exchange.totalCredit),
+      (sum, exchange) => sum + Number(exchange.totalCredit || 0),
       0,
     );
 
     const currentMonthExchanges = await this.exchangeRepository
       .createQueryBuilder('exchange')
-      .leftJoin('exchange.order', 'order')
+      .leftJoinAndSelect('exchange.order', 'order')
       .where('order.orderDate >= :start', { start: currentMonthStart })
       .andWhere('order.orderDate <= :end', { end: currentMonthEnd })
+      .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
       .andWhere('exchange.exchangeType = :type', { type: ExchangeType.GOLD })
       .getMany();
 
     const lastMonthExchanges = await this.exchangeRepository
       .createQueryBuilder('exchange')
-      .leftJoin('exchange.order', 'order')
+      .leftJoinAndSelect('exchange.order', 'order')
       .where('order.orderDate >= :start', { start: lastMonthStart })
       .andWhere('order.orderDate <= :end', { end: lastMonthEnd })
+      .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
       .andWhere('exchange.exchangeType = :type', { type: ExchangeType.GOLD })
       .getMany();
 
@@ -251,6 +242,10 @@ export class DashboardService {
     // Sales Trend (Last 30 days)
     const trendStartDate = new Date(today);
     trendStartDate.setDate(trendStartDate.getDate() - 30);
+    trendStartDate.setHours(0, 0, 0, 0);
+
+    const trendEndDate = new Date(today);
+    trendEndDate.setHours(23, 59, 59, 999);
 
     const trendOrders = await this.orderRepository
       .createQueryBuilder('order')
@@ -258,7 +253,7 @@ export class DashboardService {
       .leftJoinAndSelect('orderItems.product', 'product')
       .leftJoinAndSelect('product.metalType', 'metalType')
       .where('order.orderDate >= :start', { start: trendStartDate })
-      .andWhere('order.orderDate <= :end', { end: today })
+      .andWhere('order.orderDate <= :end', { end: trendEndDate })
       .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
       .orderBy('order.orderDate', 'ASC')
       .getMany();
@@ -267,17 +262,21 @@ export class DashboardService {
     const salesByDate = new Map<string, { gold: number; silver: number }>();
 
     for (const order of trendOrders) {
-      const dateStr = order.orderDate.toISOString().split('T')[0];
+      const orderDate = new Date(order.orderDate);
+      orderDate.setHours(0, 0, 0, 0);
+      const dateStr = orderDate.toISOString().split('T')[0];
+
       if (!salesByDate.has(dateStr)) {
         salesByDate.set(dateStr, { gold: 0, silver: 0 });
       }
 
       for (const item of order.orderItems) {
         if (item.product && item.product.metalType) {
-          if (item.product.metalType.code === 'GLD') {
-            salesByDate.get(dateStr)!.gold += Number(item.totalPrice);
-          } else if (item.product.metalType.code === 'SLV') {
-            salesByDate.get(dateStr)!.silver += Number(item.totalPrice);
+          const metalCode = item.product.metalType.code.toUpperCase();
+          if (metalCode === 'GOLD' || metalCode === 'GLD') {
+            salesByDate.get(dateStr)!.gold += Number(item.totalPrice || 0);
+          } else if (metalCode === 'SILVER' || metalCode === 'SLV') {
+            salesByDate.get(dateStr)!.silver += Number(item.totalPrice || 0);
           }
         }
       }
@@ -373,14 +372,15 @@ export class DashboardService {
     let totalMetalStockGm = 0;
 
     for (const product of inStockProducts) {
-      const weight = Number(product.grossWeightGm);
+      const weight = Number(product.grossWeightGm || 0);
       totalMetalStockGm += weight;
 
       const pricePerGram = purityPriceMap.get(product.metalPurityId) || 0;
       const basePrice = weight * pricePerGram;
-      const wastage = basePrice * (Number(product.wastagePercentage) / 100);
+      const wastage =
+        basePrice * (Number(product.wastagePercentage || 0) / 100);
       const makingCharges =
-        basePrice * (Number(product.makingChargesPercentage) / 100);
+        basePrice * (Number(product.makingChargesPercentage || 0) / 100);
       const stoneCost = product.stoneCost ? Number(product.stoneCost) : 0;
       totalInventoryValue += basePrice + wastage + makingCharges + stoneCost;
     }
@@ -395,6 +395,7 @@ export class DashboardService {
       .select('category.name', 'category')
       .addSelect('COUNT(product.id)', 'count')
       .where('product.status = :status', { status: ProductStatus.IN_STOCK })
+      .andWhere('category.id IS NOT NULL') // Only include products with valid category
       .groupBy('category.name')
       .orderBy('count', 'DESC')
       .limit(1)
@@ -405,41 +406,58 @@ export class DashboardService {
     // Inventory Flow Trend (Last 60 days)
     const flowStartDate = new Date();
     flowStartDate.setDate(flowStartDate.getDate() - 60);
+    flowStartDate.setHours(0, 0, 0, 0);
 
-    // Items Added (products created)
+    const flowEndDate = new Date();
+    flowEndDate.setHours(23, 59, 59, 999);
+
+    // Items Added (products created) - PostgreSQL compatible date truncation
     const productsAdded = await this.productRepository
       .createQueryBuilder('product')
-      .select('DATE(product.createdAt)', 'date')
+      .select("DATE_TRUNC('day', product.createdAt)", 'date')
       .addSelect('COUNT(product.id)', 'count')
       .where('product.createdAt >= :start', { start: flowStartDate })
-      .groupBy('DATE(product.createdAt)')
+      .andWhere('product.createdAt <= :end', { end: flowEndDate })
+      .groupBy("DATE_TRUNC('day', product.createdAt)")
       .getRawMany();
 
-    // Items Sold (orders completed)
+    // Items Sold (orders completed) - PostgreSQL compatible date truncation
     const productsSold = await this.orderItemRepository
       .createQueryBuilder('orderItem')
       .leftJoin('orderItem.order', 'order')
-      .select('DATE(order.orderDate)', 'date')
+      .select("DATE_TRUNC('day', order.orderDate)", 'date')
       .addSelect('COUNT(orderItem.id)', 'count')
       .where('order.orderDate >= :start', { start: flowStartDate })
+      .andWhere('order.orderDate <= :end', { end: flowEndDate })
       .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
-      .groupBy('DATE(order.orderDate)')
+      .groupBy("DATE_TRUNC('day', order.orderDate)")
       .getRawMany();
 
     const addedMap = new Map<string, number>();
     productsAdded.forEach((item) => {
-      addedMap.set(item.date, Number(item.count));
+      // Normalize date string format
+      const dateStr =
+        item.date instanceof Date
+          ? item.date.toISOString().split('T')[0]
+          : String(item.date).split('T')[0];
+      addedMap.set(dateStr, Number(item.count || 0));
     });
 
     const soldMap = new Map<string, number>();
     productsSold.forEach((item) => {
-      soldMap.set(item.date, Number(item.count));
+      // Normalize date string format
+      const dateStr =
+        item.date instanceof Date
+          ? item.date.toISOString().split('T')[0]
+          : String(item.date).split('T')[0];
+      soldMap.set(dateStr, Number(item.count || 0));
     });
 
     const inventoryFlowTrend = [];
     for (let i = 59; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
       const dateStr = date.toISOString().split('T')[0];
       inventoryFlowTrend.push({
         date: dateStr,
@@ -453,22 +471,25 @@ export class DashboardService {
       .createQueryBuilder('product')
       .leftJoin('product.metalPurity', 'purity')
       .select('purity.name', 'purity')
-      .addSelect('SUM(product.grossWeightGm)', 'stockGm')
+      .addSelect('COALESCE(SUM(product.grossWeightGm), 0)', 'stockGm')
       .where('product.status = :status', { status: ProductStatus.IN_STOCK })
+      .andWhere('purity.id IS NOT NULL') // Only include products with valid purity
       .groupBy('purity.name')
       .getRawMany();
 
     const totalStock = purityDistribution.reduce(
-      (sum, item) => sum + Number(item.stockGm),
+      (sum, item) => sum + Number(item.stockGm || 0),
       0,
     );
 
-    const stockDistribution = purityDistribution.map((item) => ({
-      purity: item.purity,
-      stockGm: Number(item.stockGm),
-      percentage:
-        totalStock > 0 ? (Number(item.stockGm) / totalStock) * 100 : 0,
-    }));
+    const stockDistribution = purityDistribution
+      .filter((item) => item.purity) // Filter out null purities
+      .map((item) => ({
+        purity: item.purity || 'Unknown',
+        stockGm: Number(item.stockGm || 0),
+        percentage:
+          totalStock > 0 ? (Number(item.stockGm || 0) / totalStock) * 100 : 0,
+      }));
 
     return {
       totalInventoryValue: Math.round(totalInventoryValue),

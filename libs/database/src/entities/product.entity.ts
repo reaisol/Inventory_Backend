@@ -21,6 +21,10 @@ import { ProductStatus } from './enums/product-status.enum';
 @Index(['barcode'], { unique: true, where: 'barcode IS NOT NULL' })
 @Index(['status'])
 @Index(['metalTypeId', 'categoryId'])
+@Index(['metalPurityId']) // FK index for joins
+@Index(['name']) // For search queries
+@Index(['status', 'createdAt']) // Composite for common filtered + sorted queries
+@Index(['createdAt']) // For sorting by creation date
 export class Product {
   @PrimaryGeneratedColumn()
   id: number;
