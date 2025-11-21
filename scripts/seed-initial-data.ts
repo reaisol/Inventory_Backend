@@ -6,6 +6,7 @@ import {
   Category,
   SystemSettings,
   Role,
+  User,
 } from '../libs/database/src/entities';
 import { PERMISSIONS } from '../libs/authentication/src/permissions';
 
@@ -38,6 +39,7 @@ async function seedData() {
     const categoryRepo = AppDataSource.getRepository(Category);
     const settingsRepo = AppDataSource.getRepository(SystemSettings);
     const roleRepo = AppDataSource.getRepository(Role);
+    const userRepo = AppDataSource.getRepository(User);
 
     // Seed Metal Types
     console.log('Seeding Metal Types...');
@@ -250,6 +252,22 @@ async function seedData() {
       console.log('✓ Sales Manager role created');
     } else {
       console.log('✓ Sales Manager role already exists');
+    }
+
+    //  create a user with the super admin role
+    let superAdminUser = await userRepo.findOne({
+      where: { email: 'bhargava@example.com' },
+    });
+    if (!superAdminUser) {
+      superAdminUser = userRepo.create({
+        email: 'bhargava@example.com',
+        password: 'bhargava@123',
+        roles: [superAdmin],
+      });
+      superAdminUser = await userRepo.save(superAdminUser);
+      console.log('✓ Super Admin user created');
+    } else {
+      console.log('✓ Super Admin user already exists');
     }
 
     console.log('\n✅ Seed data completed successfully!');
