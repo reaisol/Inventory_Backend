@@ -71,10 +71,11 @@ async function seedData() {
       { name: '24K', code: '24K', purityPercentage: 99.9 },
       { name: '22K', code: '22K', purityPercentage: 91.6 },
       { name: '18K', code: '18K', purityPercentage: 75.0 },
+      { name: '14K', code: '14K', purityPercentage: 58.5 },
     ];
 
     for (const purity of goldPurities) {
-      let existing = await metalPurityRepo.findOne({
+      const existing = await metalPurityRepo.findOne({
         where: { code: purity.code, metalTypeId: goldType.id },
       });
       if (!existing) {
@@ -91,10 +92,11 @@ async function seedData() {
     const silverPurities = [
       { name: 'Fine Silver', code: 'FINE', purityPercentage: 99.9 },
       { name: 'Sterling Silver', code: 'STERLING', purityPercentage: 92.5 },
+      { name: '925 Silver', code: '925', purityPercentage: 92.5 },
     ];
 
     for (const purity of silverPurities) {
-      let existing = await metalPurityRepo.findOne({
+      const existing = await metalPurityRepo.findOne({
         where: { code: purity.code, metalTypeId: silverType.id },
       });
       if (!existing) {
@@ -122,7 +124,7 @@ async function seedData() {
     ];
 
     for (const category of categories) {
-      let existing = await categoryRepo.findOne({
+      const existing = await categoryRepo.findOne({
         where: { code: category.code },
       });
       if (!existing) {
@@ -154,7 +156,7 @@ async function seedData() {
     ];
 
     for (const setting of settings) {
-      let existing = await settingsRepo.findOne({
+      const existing = await settingsRepo.findOne({
         where: { key: setting.key },
       });
       if (!existing) {
@@ -165,6 +167,7 @@ async function seedData() {
       }
     }
 
+    /** Don't change from here to here */
     // Seed Default Roles
     console.log('Seeding Default Roles...');
     const allPermissions = Object.keys(PERMISSIONS);
