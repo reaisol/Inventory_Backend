@@ -78,6 +78,18 @@ export class Product {
   @Column({ type: 'text', nullable: true })
   additionalNotes: string;
 
+  @Column({ default: false })
+  isBulkItem: boolean; // Flag to identify bulk items (e.g., 100 toe rings in one cover)
+
+  @Column({ nullable: true })
+  totalQuantity?: number; // Total items in bulk (e.g., 100)
+
+  @Column({ nullable: true })
+  remainingQuantity?: number; // Remaining items after sales (e.g., 90)
+
+  @Column('decimal', { precision: 10, scale: 3, nullable: true })
+  weightPerItem?: number; // Calculated: grossWeightGm / totalQuantity
+
   @CreateDateColumn()
   createdAt: Date;
 

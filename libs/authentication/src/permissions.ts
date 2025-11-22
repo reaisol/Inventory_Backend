@@ -159,4 +159,21 @@ export const PERMISSIONS: Record<string, Permission> = {
     action: 'delete',
     resource: 'settings',
   },
+  // Expense permissions
+  create_expense: {
+    action: 'create',
+    resource: 'expenses',
+  },
+  read_expense: {
+    action: 'read',
+    resource: 'expenses',
+  },
+  update_expense: {
+    action: 'update',
+    resource: 'expenses',
+  },
+  delete_expense: {
+    action: 'delete',
+    resource: 'expenses',
+  },
 };

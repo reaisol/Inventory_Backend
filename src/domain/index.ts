@@ -8,3 +8,4 @@ export * from './customers/customers.module';
 export * from './orders';
 export * from './settings';
 export * from './dashboard';
+export * from './expenses';

@@ -30,6 +30,9 @@ export class OrderItem {
   @Column('decimal', { precision: 10, scale: 2 })
   totalPrice: number;
 
+  @Column({ default: 1 })
+  quantity: number; // Number of items sold (1 for regular, 1-N for bulk items)
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Exclude, Expose, Type } from 'class-transformer';
 
 class MetalTypeDto {
@@ -105,6 +105,34 @@ export class ProductResponseDto {
   @ApiProperty({ description: 'Additional notes' })
   @Expose()
   additionalNotes: string;
+
+  @ApiPropertyOptional({
+    description: 'Is this a bulk item?',
+    example: false,
+  })
+  @Expose()
+  isBulkItem?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Total quantity (for bulk items)',
+    example: 100,
+  })
+  @Expose()
+  totalQuantity?: number;
+
+  @ApiPropertyOptional({
+    description: 'Remaining quantity (for bulk items)',
+    example: 90,
+  })
+  @Expose()
+  remainingQuantity?: number;
+
+  @ApiPropertyOptional({
+    description: 'Weight per item in grams (for bulk items)',
+    example: 0.5,
+  })
+  @Expose()
+  weightPerItem?: number;
 
   @ApiProperty()
   @Expose()

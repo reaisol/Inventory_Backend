@@ -96,25 +96,98 @@ export class OrdersService {
       let wastageAmount = 0;
       let makingChargesAmount = 0;
 
-      for (const product of products) {
-        // Get current metal price
-        const metalPrice = await this.getCurrentMetalPrice(
-          product.metalPurityId,
-        );
+      for (let i = 0; i < products.length; i++) {
+        const product = products[i];
+        const orderItemDto = createOrderDto.items[i];
+        const quantity = orderItemDto.quantity || 1;
 
-        // Calculate product price
-        const priceCalculation = calculateProductPrice(product, metalPrice);
+        // Handle bulk items
+        if (product.isBulkItem) {
+          // Validate quantity for bulk items
+          if (
+            !product.remainingQuantity ||
+            product.remainingQuantity < quantity
+          ) {
+            throw new BadRequestException(
+              `Only ${product.remainingQuantity || 0} items available for product ${product.productId}. Requested: ${quantity}`,
+            );
+          }
 
-        const orderItem = queryRunner.manager.create(OrderItem, {
-          productId: product.id,
-          unitPrice: priceCalculation.totalPrice,
-          totalPrice: priceCalculation.totalPrice,
-        });
+          // Calculate sold weight for bulk items
+          const soldWeight = Number(
+            ((product.weightPerItem || 0) * quantity).toFixed(3),
+          );
 
-        orderItems.push(orderItem);
-        subtotal += priceCalculation.totalPrice;
-        wastageAmount += priceCalculation.wastageAmount;
-        makingChargesAmount += priceCalculation.makingChargesAmount;
+          // Get current metal price
+          const metalPrice = await this.getCurrentMetalPrice(
+            product.metalPurityId,
+          );
+
+          // Create a temporary product object with sold weight for price calculation
+          const tempProduct = {
+            ...product,
+            grossWeightGm: soldWeight,
+          };
+
+          // Calculate price for sold quantity
+          const priceCalculation = calculateProductPrice(
+            tempProduct,
+            metalPrice,
+          );
+
+          // Update product: reduce remaining quantity and weight
+          product.remainingQuantity -= quantity;
+          product.grossWeightGm = Number(
+            (product.grossWeightGm - soldWeight).toFixed(3),
+          );
+
+          // Mark as SOLD if all items are sold
+          if (product.remainingQuantity === 0) {
+            product.status = ProductStatus.SOLD;
+          }
+
+          const orderItem = queryRunner.manager.create(OrderItem, {
+            productId: product.id,
+            unitPrice: priceCalculation.totalPrice,
+            totalPrice: priceCalculation.totalPrice,
+            quantity: quantity,
+          });
+
+          orderItems.push(orderItem);
+          subtotal += priceCalculation.totalPrice;
+          wastageAmount += priceCalculation.wastageAmount;
+          makingChargesAmount += priceCalculation.makingChargesAmount;
+        } else {
+          // Regular item - sell entire product
+          if (quantity !== 1) {
+            throw new BadRequestException(
+              `Quantity must be 1 for non-bulk items. Product ${product.productId} is not a bulk item.`,
+            );
+          }
+
+          // Get current metal price
+          const metalPrice = await this.getCurrentMetalPrice(
+            product.metalPurityId,
+          );
+
+          // Calculate product price
+          const priceCalculation = calculateProductPrice(product, metalPrice);
+
+          const orderItem = queryRunner.manager.create(OrderItem, {
+            productId: product.id,
+            unitPrice: priceCalculation.totalPrice,
+            totalPrice: priceCalculation.totalPrice,
+            quantity: 1,
+          });
+
+          orderItems.push(orderItem);
+          subtotal += priceCalculation.totalPrice;
+          wastageAmount += priceCalculation.wastageAmount;
+          makingChargesAmount += priceCalculation.makingChargesAmount;
+
+          // Mark regular product as SOLD
+          product.status = ProductStatus.SOLD;
+        }
       }
 
       // Handle exchanges
@@ -197,18 +270,26 @@ export class OrdersService {
         await queryRunner.manager.save(Exchange, exchange);
       }
 
-      // Update product status to SOLD and create stock records
-      for (const product of products) {
-        product.status = ProductStatus.SOLD;
+      // Update products and create stock records
+      for (let i = 0; i < products.length; i++) {
+        const product = products[i];
+        const orderItem = orderItems[i];
+        const quantity = orderItem.quantity || 1;
+
+        // Save product (already updated for bulk items above)
         await queryRunner.manager.save(Product, product);
 
         // Create stock record
+        const stockNotes = product.isBulkItem
+          ? `Sold ${quantity} items in order ${orderNumber} (${product.remainingQuantity || 0} remaining)`
+          : `Sold in order ${orderNumber}`;
+
         const stockRecord = queryRunner.manager.create(ProductStock, {
           productId: product.id,
           stockType: StockType.OUT,
           referenceType: 'SALE',
           referenceId: savedOrder.id,
-          notes: `Sold in order ${orderNumber}`,
+          notes: stockNotes,
         });
         await queryRunner.manager.save(ProductStock, stockRecord);
       }

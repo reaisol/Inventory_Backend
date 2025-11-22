@@ -1,4 +1,10 @@
-import { IsOptional, IsNumber, IsString, Min } from 'class-validator';
+import {
+  IsOptional,
+  IsNumber,
+  IsString,
+  IsBoolean,
+  Min,
+} from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateProductDto {
@@ -64,4 +70,21 @@ export class UpdateProductDto {
   @IsOptional()
   @IsString()
   additionalNotes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Is this a bulk item?',
+    example: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isBulkItem?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Total quantity (for bulk items)',
+    example: 100,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  totalQuantity?: number;
 }

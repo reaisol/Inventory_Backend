@@ -48,6 +48,12 @@ class OrderItemDto {
 
   @ApiProperty()
   totalPrice: number;
+
+  @ApiProperty({
+    description: 'Quantity sold (1 for regular items, 1-N for bulk items)',
+    example: 1,
+  })
+  quantity: number;
 }
 
 class ExchangeDto {

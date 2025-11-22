@@ -13,6 +13,7 @@ import {
   OrdersModule,
   SettingsModule,
   DashboardModule,
+  ExpensesModule,
 } from './domain';
 
 @Module({
@@ -32,6 +33,7 @@ import {
     OrdersModule,
     SettingsModule,
     DashboardModule,
+    ExpensesModule,
   ],
 })
 export class AppModule {}

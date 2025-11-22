@@ -3,7 +3,9 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsBoolean,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -105,4 +107,23 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   additionalNotes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Is this a bulk item? (e.g., 100 toe rings in one cover)',
+    example: false,
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isBulkItem?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Total quantity (required if isBulkItem is true)',
+    example: 100,
+  })
+  @ValidateIf((o) => o.isBulkItem === true)
+  @IsNotEmpty({ message: 'totalQuantity is required when isBulkItem is true' })
+  @IsNumber()
+  @Min(1)
+  totalQuantity?: number;
 }

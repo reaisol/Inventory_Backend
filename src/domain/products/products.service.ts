@@ -124,6 +124,18 @@ export class ProductsService {
       sequence,
     );
 
+    // Validate bulk item fields
+    if (createProductDto.isBulkItem) {
+      if (
+        !createProductDto.totalQuantity ||
+        createProductDto.totalQuantity < 1
+      ) {
+        throw new BadRequestException(
+          'totalQuantity is required and must be at least 1 for bulk items',
+        );
+      }
+    }
+
     // Create product
     const product = this.productRepository.create({
       ...createProductDto,
@@ -131,7 +143,16 @@ export class ProductsService {
       wastagePercentage,
       makingChargesPercentage,
       status: ProductStatus.IN_STOCK,
+      isBulkItem: createProductDto.isBulkItem || false,
     });
+
+    // Calculate bulk item fields
+    if (product.isBulkItem && product.totalQuantity) {
+      product.remainingQuantity = product.totalQuantity;
+      product.weightPerItem = Number(
+        (product.grossWeightGm / product.totalQuantity).toFixed(3),
+      );
+    }
 
     return this.productRepository.save(product);
   }
@@ -265,6 +286,52 @@ export class ProductsService {
           `Product with barcode ${updateProductDto.barcode} already exists`,
         );
       }
+    }
+
+    // Handle bulk item updates
+    if (updateProductDto.isBulkItem !== undefined) {
+      // Only allow changing isBulkItem if product hasn't been sold
+      if (product.status === ProductStatus.SOLD) {
+        throw new BadRequestException(
+          'Cannot change isBulkItem for sold products',
+        );
+      }
+      product.isBulkItem = updateProductDto.isBulkItem;
+    }
+
+    if (updateProductDto.totalQuantity !== undefined) {
+      // Only allow updating totalQuantity if product hasn't been sold yet
+      if (product.status === ProductStatus.SOLD) {
+        throw new BadRequestException(
+          'Cannot update totalQuantity for sold products',
+        );
+      }
+      const oldTotalQuantity = product.totalQuantity || 0;
+      product.totalQuantity = updateProductDto.totalQuantity;
+
+      // If increasing totalQuantity, adjust remainingQuantity proportionally
+      if (oldTotalQuantity > 0 && product.remainingQuantity !== null) {
+        const ratio = updateProductDto.totalQuantity / oldTotalQuantity;
+        product.remainingQuantity = Math.floor(
+          (product.remainingQuantity || 0) * ratio,
+        );
+      } else {
+        // If setting totalQuantity for first time, set remainingQuantity
+        product.remainingQuantity = updateProductDto.totalQuantity;
+      }
+    }
+
+    // Recalculate bulk item fields if weight or totalQuantity changed
+    if (
+      product.isBulkItem &&
+      product.totalQuantity &&
+      (updateProductDto.grossWeightGm !== undefined ||
+        updateProductDto.totalQuantity !== undefined)
+    ) {
+      // Recalculate weight per item
+      product.weightPerItem = Number(
+        (product.grossWeightGm / product.totalQuantity).toFixed(3),
+      );
     }
 
     Object.assign(product, updateProductDto);

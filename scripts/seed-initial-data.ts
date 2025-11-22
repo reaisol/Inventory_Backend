@@ -174,12 +174,12 @@ async function seedData() {
     console.log('Seeding Default Roles...');
     const allPermissions = Object.keys(PERMISSIONS);
 
-    // Super Admin - Full system access
+    // Super Admin - Full system access (includes all permissions including expenses)
     let superAdmin = await roleRepo.findOne({ where: { name: 'super_admin' } });
     if (!superAdmin) {
       superAdmin = roleRepo.create({
         name: 'super_admin',
-        permissions: allPermissions,
+        permissions: allPermissions, // Includes expense permissions
       });
       superAdmin = await roleRepo.save(superAdmin);
       console.log('✓ Super Admin role created with all permissions');
@@ -214,6 +214,10 @@ async function seedData() {
           'calculate_product_price',
           // Settings (read only for inventory settings)
           'read_setting',
+          // Expense permissions (for tracking store expenses)
+          'create_expense',
+          'read_expense',
+          'update_expense',
         ],
       });
       inventoryManager = await roleRepo.save(inventoryManager);
@@ -262,6 +266,7 @@ async function seedData() {
       superAdminUser = userRepo.create({
         email: 'bhargava@example.com',
         password: 'bhargava@123',
+        name: 'Bhargava',
         roles: [superAdmin],
       });
       superAdminUser = await userRepo.save(superAdminUser);
