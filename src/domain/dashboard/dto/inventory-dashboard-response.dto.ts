@@ -29,22 +29,61 @@ class PurityDistributionDto {
   percentage: number;
 }
 
+class MetalInventoryDto {
+  @ApiProperty({ description: 'Metal type name', example: 'Gold' })
+  @Expose()
+  metalType: string;
+
+  @ApiProperty({ description: 'Metal type code', example: 'GOLD' })
+  @Expose()
+  metalCode: string;
+
+  @ApiProperty({
+    description: 'Inventory value for this metal',
+    example: 3500000,
+  })
+  @Expose()
+  inventoryValue: number;
+
+  @ApiProperty({ description: 'Metal stock in grams', example: 1200.5 })
+  @Expose()
+  stockGm: number;
+
+  @ApiProperty({ description: 'Number of items', example: 15 })
+  @Expose()
+  items: number;
+}
+
 @Expose()
 export class InventoryDashboardResponseDto {
   @ApiProperty({
-    description: 'Total inventory value in INR',
+    description: 'Total inventory value in INR (overall or filtered)',
     example: 7138675,
   })
   @Expose()
   totalInventoryValue: number;
 
-  @ApiProperty({ description: 'Total metal stock in grams', example: 2448.3 })
+  @ApiProperty({
+    description: 'Total metal stock in grams (overall or filtered)',
+    example: 2448.3,
+  })
   @Expose()
   totalMetalStockGm: number;
 
-  @ApiProperty({ description: 'Total number of items', example: 30 })
+  @ApiProperty({
+    description: 'Total number of items (overall or filtered)',
+    example: 30,
+  })
   @Expose()
   totalItems: number;
+
+  @ApiProperty({
+    description: 'Inventory breakdown by metal type',
+    type: [MetalInventoryDto],
+  })
+  @Expose()
+  @Type(() => MetalInventoryDto)
+  metalInventory: MetalInventoryDto[];
 
   @ApiProperty({ description: 'Most stocked category name', example: 'Ring' })
   @Expose()

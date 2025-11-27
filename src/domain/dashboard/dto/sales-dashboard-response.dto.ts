@@ -23,13 +23,12 @@ class SalesTrendDataPointDto {
   @Expose()
   date: string;
 
-  @ApiProperty({ description: 'Gold sales amount', example: 250000 })
+  @ApiProperty({
+    description: 'Sales by metal type',
+    example: { GOLD: 250000, SILVER: 50000 },
+  })
   @Expose()
-  goldSales: number;
-
-  @ApiProperty({ description: 'Silver sales amount', example: 0 })
-  @Expose()
-  silverSales: number;
+  salesByMetal: Record<string, number>;
 }
 
 class CategoryRevenueDto {
@@ -42,6 +41,36 @@ class CategoryRevenueDto {
   revenue: number;
 }
 
+class MetalCreditDto {
+  @ApiProperty({ description: 'Metal type name', example: 'Gold' })
+  @Expose()
+  metalType: string;
+
+  @ApiProperty({ description: 'Metal type code', example: 'GOLD' })
+  @Expose()
+  metalCode: string;
+
+  @ApiProperty({ description: 'Credit amount', type: SalesMetricDto })
+  @Expose()
+  @Type(() => SalesMetricDto)
+  credit: SalesMetricDto;
+}
+
+class MetalSoldDto {
+  @ApiProperty({ description: 'Metal type name', example: 'Gold' })
+  @Expose()
+  metalType: string;
+
+  @ApiProperty({ description: 'Metal type code', example: 'GOLD' })
+  @Expose()
+  metalCode: string;
+
+  @ApiProperty({ description: 'Metal sold in grams', type: SalesMetricDto })
+  @Expose()
+  @Type(() => SalesMetricDto)
+  sold: SalesMetricDto;
+}
+
 @Expose()
 export class SalesDashboardResponseDto {
   @ApiProperty({ description: 'Total sales for today', type: SalesMetricDto })
@@ -49,20 +78,21 @@ export class SalesDashboardResponseDto {
   @Type(() => SalesMetricDto)
   totalSalesToday: SalesMetricDto;
 
-  @ApiProperty({ description: 'Gold sold in grams', type: SalesMetricDto })
+  @ApiProperty({
+    description: 'Metal sold by metal type (in grams)',
+    type: [MetalSoldDto],
+  })
   @Expose()
-  @Type(() => SalesMetricDto)
-  goldSold: SalesMetricDto;
+  @Type(() => MetalSoldDto)
+  metalSold: MetalSoldDto[];
 
-  @ApiProperty({ description: 'Silver sold in grams', type: SalesMetricDto })
+  @ApiProperty({
+    description: 'Metal credits by metal type',
+    type: [MetalCreditDto],
+  })
   @Expose()
-  @Type(() => SalesMetricDto)
-  silverSold: SalesMetricDto;
-
-  @ApiProperty({ description: 'Old gold credit amount', type: SalesMetricDto })
-  @Expose()
-  @Type(() => SalesMetricDto)
-  oldGoldCredit: SalesMetricDto;
+  @Type(() => MetalCreditDto)
+  metalCredits: MetalCreditDto[];
 
   @ApiProperty({
     description: 'Sales trend data over time',
