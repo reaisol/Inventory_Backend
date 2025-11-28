@@ -63,6 +63,15 @@ class ExchangeDto {
   @ApiProperty()
   exchangeType: string;
 
+  @ApiProperty({ nullable: true })
+  metalPurityId: number | null;
+
+  @ApiProperty({ nullable: true, required: false })
+  customPurityName: string | null;
+
+  @ApiProperty({ nullable: true, required: false })
+  customPurityPercentage: number | null;
+
   @ApiProperty()
   weightGm: number;
 

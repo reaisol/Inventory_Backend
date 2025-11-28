@@ -29,14 +29,20 @@ export class Exchange {
   })
   exchangeType: ExchangeType; // GOLD, SILVER
 
-  @Column()
-  metalPurityId: number;
+  @Column({ nullable: true })
+  metalPurityId: number; // nullable for custom/unknown purity
+
+  @Column({ nullable: true })
+  customPurityName: string; // e.g., "18.5K", "Custom", "Unknown"
+
+  @Column('decimal', { precision: 5, scale: 2, nullable: true })
+  customPurityPercentage: number; // e.g., 18.5, 75.5 if known
 
   @Column('decimal', { precision: 10, scale: 3 })
   weightGm: number;
 
   @Column('decimal', { precision: 10, scale: 2 })
-  pricePerGram: number; // at time of exchange
+  pricePerGram: number; // at time of exchange (can be manual for custom purity)
 
   @Column('decimal', { precision: 10, scale: 2 })
   totalCredit: number;
@@ -48,7 +54,9 @@ export class Exchange {
   @JoinColumn({ name: 'orderId' })
   order: Order;
 
-  @ManyToOne(() => MetalPurity, (metalPurity) => metalPurity.exchanges)
+  @ManyToOne(() => MetalPurity, (metalPurity) => metalPurity.exchanges, {
+    nullable: true,
+  })
   @JoinColumn({ name: 'metalPurityId' })
   metalPurity: MetalPurity;
 }

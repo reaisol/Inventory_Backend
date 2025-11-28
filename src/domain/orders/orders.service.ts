@@ -196,27 +196,62 @@ export class OrdersService {
 
       if (createOrderDto.exchanges && createOrderDto.exchanges.length > 0) {
         for (const exchangeDto of createOrderDto.exchanges) {
-          const metalPurity = await queryRunner.manager.findOne(MetalPurity, {
-            where: { id: exchangeDto.metalPurityId },
-          });
-
-          if (!metalPurity) {
-            throw new NotFoundException(
-              `Metal purity with ID ${exchangeDto.metalPurityId} not found`,
+          // Validate that either metalPurityId or custom purity fields are provided
+          if (!exchangeDto.metalPurityId && !exchangeDto.customPurityName) {
+            throw new BadRequestException(
+              'Either metalPurityId (for predefined purity) or customPurityName (for custom purity) must be provided',
             );
           }
 
-          const metalPrice = await this.getCurrentMetalPrice(
-            exchangeDto.metalPurityId,
-          );
+          let pricePerGram: number;
+          let metalPurityId: number | null = null;
 
-          const totalCredit = exchangeDto.weightGm * metalPrice.pricePerGram;
+          // Check if using predefined purity or custom purity
+          if (exchangeDto.metalPurityId) {
+            // Using predefined purity - get price from database
+            const metalPurity = await queryRunner.manager.findOne(MetalPurity, {
+              where: { id: exchangeDto.metalPurityId },
+            });
+
+            if (!metalPurity) {
+              throw new NotFoundException(
+                `Metal purity with ID ${exchangeDto.metalPurityId} not found`,
+              );
+            }
+
+            const metalPrice = await this.getCurrentMetalPrice(
+              exchangeDto.metalPurityId,
+            );
+
+            pricePerGram = exchangeDto.pricePerGram || metalPrice.pricePerGram;
+            metalPurityId = exchangeDto.metalPurityId;
+          } else {
+            // Using custom purity - require manual price per gram
+            if (!exchangeDto.pricePerGram) {
+              throw new BadRequestException(
+                'pricePerGram is required when using custom purity (metalPurityId not provided)',
+              );
+            }
+
+            if (!exchangeDto.customPurityName) {
+              throw new BadRequestException(
+                'customPurityName is required when using custom purity (metalPurityId not provided)',
+              );
+            }
+
+            pricePerGram = exchangeDto.pricePerGram;
+            metalPurityId = null;
+          }
+
+          const totalCredit = exchangeDto.weightGm * pricePerGram;
 
           const exchange = queryRunner.manager.create(Exchange, {
             exchangeType: exchangeDto.exchangeType,
-            metalPurityId: exchangeDto.metalPurityId,
+            metalPurityId: metalPurityId,
+            customPurityName: exchangeDto.customPurityName || null,
+            customPurityPercentage: exchangeDto.customPurityPercentage || null,
             weightGm: exchangeDto.weightGm,
-            pricePerGram: metalPrice.pricePerGram,
+            pricePerGram: pricePerGram,
             totalCredit,
           });
 
