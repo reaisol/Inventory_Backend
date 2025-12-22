@@ -14,6 +14,7 @@ import {
   SettingsModule,
   DashboardModule,
   ExpensesModule,
+  DailySheetsModule,
 } from './domain';
 
 @Module({
@@ -34,6 +35,7 @@ import {
     SettingsModule,
     DashboardModule,
     ExpensesModule,
+    DailySheetsModule,
   ],
 })
 export class AppModule {}

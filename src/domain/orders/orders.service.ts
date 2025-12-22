@@ -19,6 +19,7 @@ import {
 } from '@app/database';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderQueryPaginationDto } from './dto/order-query-pagination.dto';
+import { CalculateOrderResponseDto } from './dto/calculate-order-response.dto';
 import {
   PaginatedResponse,
   createPaginationMeta,
@@ -260,14 +261,26 @@ export class OrdersService {
         }
       }
 
-      // Calculate final totals
-      const discountAmount = createOrderDto.discountAmount || 0;
+      // Calculate discounts (apply only to making charges and wastage)
+      const makingDiscount = createOrderDto.makingDiscount || 0;
+      const wastageDiscount = createOrderDto.wastageDiscount || 0;
+
+      // Ensure discounts don't exceed the respective amounts
+      const finalMakingDiscount = Math.min(makingDiscount, makingChargesAmount);
+      const finalWastageDiscount = Math.min(wastageDiscount, wastageAmount);
+
+      // Calculate discounted amounts
+      const discountedMakingChargesAmount =
+        makingChargesAmount - finalMakingDiscount;
+      const discountedWastageAmount = wastageAmount - finalWastageDiscount;
+
+      // Calculate final total
+      // Total = Subtotal + (Wastage - Wastage Discount) + (Making Charges - Making Discount) - Exchange Credit
       const totalAmount =
         subtotal +
-        wastageAmount +
-        makingChargesAmount -
-        exchangeCredit -
-        discountAmount;
+        discountedWastageAmount +
+        discountedMakingChargesAmount -
+        exchangeCredit;
 
       // Generate order number
       const orderNumber = await generateOrderNumber(
@@ -284,7 +297,8 @@ export class OrdersService {
         exchangeCredit,
         wastageAmount,
         makingChargesAmount,
-        discountAmount,
+        makingDiscount: finalMakingDiscount,
+        wastageDiscount: finalWastageDiscount,
         totalAmount: Math.max(0, totalAmount), // Ensure non-negative
         paymentMethod: createOrderDto.paymentMethod,
         status: OrderStatus.COMPLETED,
@@ -331,6 +345,7 @@ export class OrdersService {
 
       await queryRunner.commitTransaction();
 
+
       // Return order with relations
       return this.findOne(savedOrder.id);
     } catch (error) {
@@ -339,6 +354,203 @@ export class OrdersService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  /**
+   * Calculate order total without saving (for quote/preview)
+   */
+  async calculate(createOrderDto: CreateOrderDto): Promise<CalculateOrderResponseDto> {
+    // Validate customer if provided
+    if (createOrderDto.customerId) {
+      const customer = await this.customerRepository.findOne({
+        where: { id: createOrderDto.customerId },
+      });
+      if (!customer) {
+        throw new NotFoundException(
+          `Customer with ID ${createOrderDto.customerId} not found`,
+        );
+      }
+    }
+
+    // Validate and get products
+    const productIds = createOrderDto.items.map((item) => item.productId);
+    const products = await this.productRepository.find({
+      where: { id: In(productIds) },
+      relations: ['metalPurity', 'metalType', 'category'],
+    });
+
+    if (products.length !== productIds.length) {
+      throw new NotFoundException('One or more products not found');
+    }
+
+    // Calculate item prices and totals
+    const itemCalculations: CalculateOrderResponseDto['items'] = [];
+    let subtotal = 0;
+    let wastageAmount = 0;
+    let makingChargesAmount = 0;
+
+    for (let i = 0; i < products.length; i++) {
+      const product = products[i];
+      const orderItemDto = createOrderDto.items[i];
+      const quantity = orderItemDto.quantity || 1;
+
+      let priceCalculation;
+      let soldWeight = product.grossWeightGm;
+
+      if (product.isBulkItem) {
+        // Calculate sold weight for bulk items
+        soldWeight = Number(((product.weightPerItem || 0) * quantity).toFixed(3));
+
+        // Get current metal price
+        const metalPrice = await this.getCurrentMetalPrice(
+          product.metalPurityId,
+        );
+
+        // Create a temporary product object with sold weight for price calculation
+        const tempProduct = {
+          ...product,
+          grossWeightGm: soldWeight,
+        };
+
+        // Calculate price for sold quantity
+        priceCalculation = calculateProductPrice(tempProduct, metalPrice);
+      } else {
+        // Regular item - sell entire product
+        if (quantity !== 1) {
+          throw new BadRequestException(
+            `Quantity must be 1 for non-bulk items. Product ${product.productId} is not a bulk item.`,
+          );
+        }
+
+        // Get current metal price
+        const metalPrice = await this.getCurrentMetalPrice(
+          product.metalPurityId,
+        );
+
+        // Calculate product price
+        priceCalculation = calculateProductPrice(product, metalPrice);
+      }
+
+      itemCalculations.push({
+        productId: product.id,
+        productName: product.name || product.productId,
+        quantity: quantity,
+        unitPrice: priceCalculation.totalPrice,
+        totalPrice: priceCalculation.totalPrice,
+        basePrice: priceCalculation.basePrice,
+        wastageAmount: priceCalculation.wastageAmount,
+        makingChargesAmount: priceCalculation.makingChargesAmount,
+        stoneCost: priceCalculation.stoneCost,
+      });
+
+      subtotal += priceCalculation.totalPrice;
+      wastageAmount += priceCalculation.wastageAmount;
+      makingChargesAmount += priceCalculation.makingChargesAmount;
+    }
+
+    // Handle exchanges
+    let exchangeCredit = 0;
+    const exchangeCalculations: CalculateOrderResponseDto['exchanges'] = [];
+
+    if (createOrderDto.exchanges && createOrderDto.exchanges.length > 0) {
+      for (const exchangeDto of createOrderDto.exchanges) {
+        // Validate that either metalPurityId or custom purity fields are provided
+        if (!exchangeDto.metalPurityId && !exchangeDto.customPurityName) {
+          throw new BadRequestException(
+            'Either metalPurityId (for predefined purity) or customPurityName (for custom purity) must be provided',
+          );
+        }
+
+        let pricePerGram: number;
+        let metalPurityId: number | null = null;
+
+        // Check if using predefined purity or custom purity
+        if (exchangeDto.metalPurityId) {
+          // Using predefined purity - get price from database
+          const metalPurity = await this.metalPurityRepository.findOne({
+            where: { id: exchangeDto.metalPurityId },
+          });
+
+          if (!metalPurity) {
+            throw new NotFoundException(
+              `Metal purity with ID ${exchangeDto.metalPurityId} not found`,
+            );
+          }
+
+          const metalPrice = await this.getCurrentMetalPrice(
+            exchangeDto.metalPurityId,
+          );
+
+          pricePerGram = exchangeDto.pricePerGram || metalPrice.pricePerGram;
+          metalPurityId = exchangeDto.metalPurityId;
+        } else {
+          // Using custom purity - require manual price per gram
+          if (!exchangeDto.pricePerGram) {
+            throw new BadRequestException(
+              'pricePerGram is required when using custom purity (metalPurityId not provided)',
+            );
+          }
+
+          if (!exchangeDto.customPurityName) {
+            throw new BadRequestException(
+              'customPurityName is required when using custom purity (metalPurityId not provided)',
+            );
+          }
+
+          pricePerGram = exchangeDto.pricePerGram;
+          metalPurityId = null;
+        }
+
+        const totalCredit = exchangeDto.weightGm * pricePerGram;
+
+        exchangeCalculations.push({
+          exchangeType: exchangeDto.exchangeType,
+          metalPurityId: metalPurityId,
+          customPurityName: exchangeDto.customPurityName || null,
+          weightGm: exchangeDto.weightGm,
+          pricePerGram: pricePerGram,
+          totalCredit: totalCredit,
+        });
+
+        exchangeCredit += totalCredit;
+      }
+    }
+
+    // Calculate discounts (apply only to making charges and wastage)
+    const makingDiscount = createOrderDto.makingDiscount || 0;
+    const wastageDiscount = createOrderDto.wastageDiscount || 0;
+
+    // Ensure discounts don't exceed the respective amounts
+    const finalMakingDiscount = Math.min(makingDiscount, makingChargesAmount);
+    const finalWastageDiscount = Math.min(wastageDiscount, wastageAmount);
+
+    // Calculate discounted amounts
+    const discountedMakingChargesAmount =
+      makingChargesAmount - finalMakingDiscount;
+    const discountedWastageAmount = wastageAmount - finalWastageDiscount;
+
+    // Calculate final total
+    const totalAmount =
+      subtotal +
+      discountedWastageAmount +
+      discountedMakingChargesAmount -
+      exchangeCredit;
+
+    return {
+      subtotal: Number(subtotal.toFixed(2)),
+      wastageAmount: Number(wastageAmount.toFixed(2)),
+      makingChargesAmount: Number(makingChargesAmount.toFixed(2)),
+      makingDiscount: finalMakingDiscount,
+      discountedMakingChargesAmount: Number(
+        discountedMakingChargesAmount.toFixed(2),
+      ),
+      wastageDiscount: finalWastageDiscount,
+      discountedWastageAmount: Number(discountedWastageAmount.toFixed(2)),
+      exchangeCredit: Number(exchangeCredit.toFixed(2)),
+      totalAmount: Number(Math.max(0, totalAmount).toFixed(2)),
+      items: itemCalculations,
+      exchanges: exchangeCalculations,
+    };
   }
 
   async findAll(

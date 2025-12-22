@@ -127,7 +127,11 @@ export class OrderResponseDto {
 
   @ApiProperty()
   @Expose()
-  discountAmount: number;
+  makingDiscount: number;
+
+  @ApiProperty()
+  @Expose()
+  wastageDiscount: number;
 
   @ApiProperty()
   @Expose()

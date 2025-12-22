@@ -21,6 +21,7 @@ import {
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderResponseDto } from './dto/order-response.dto';
+import { CalculateOrderResponseDto } from './dto/calculate-order-response.dto';
 import { OrderQueryPaginationDto } from './dto/order-query-pagination.dto';
 import {
   JwtAuthGuard,
@@ -43,6 +44,21 @@ import {
 @ApiBearerAuth('JWT-auth')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
+
+  @Post('calculate')
+  @ApiOperation({ summary: 'Calculate order total without saving (quote/preview)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Order calculation completed successfully',
+    type: CalculateOrderResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 404, description: 'Product or customer not found' })
+  @CheckPolicies(new CreateOrderPolicyHandler())
+  async calculate(@Body() createOrderDto: CreateOrderDto) {
+    const result = await this.ordersService.calculate(createOrderDto);
+    return result;
+  }
 
   @Post()
   @ApiOperation({ summary: 'Create a new order (billing)' })

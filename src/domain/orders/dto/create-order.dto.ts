@@ -43,13 +43,22 @@ export class CreateOrderDto {
   exchanges?: CreateExchangeDto[];
 
   @ApiPropertyOptional({
-    description: 'Discount amount',
+    description: 'Discount applied only to making charges',
     example: 0,
   })
   @IsOptional()
   @IsNumber()
   @Min(0)
-  discountAmount?: number;
+  makingDiscount?: number;
+
+  @ApiPropertyOptional({
+    description: 'Discount applied only to wastage amount',
+    example: 0,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  wastageDiscount?: number;
 
   @ApiProperty({
     description: 'Payment method',

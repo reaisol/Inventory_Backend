@@ -53,7 +53,10 @@ export class Order {
   makingChargesAmount: number;
 
   @Column('decimal', { precision: 10, scale: 2, default: 0 })
-  discountAmount: number;
+  makingDiscount: number; // Discount applied only to making charges
+
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
+  wastageDiscount: number; // Discount applied only to wastage
 
   @Column('decimal', { precision: 10, scale: 2 })
   totalAmount: number;
