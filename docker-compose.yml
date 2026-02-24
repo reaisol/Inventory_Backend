@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: inventory_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: JmdCwuQWRIyDVTqyPwfLMjFrCimIVNRK
+      POSTGRES_DB: railway
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - inventory_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventory_backend
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run start:dev
+    networks:
+      - inventory_network
+
+volumes:
+  postgres_data:
+
+networks:
+  inventory_network:
+    driver: bridge

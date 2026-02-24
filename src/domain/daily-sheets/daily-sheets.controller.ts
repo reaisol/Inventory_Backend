@@ -19,6 +19,7 @@ import { UpdateDailySheetDto } from './dto/update-daily-sheet.dto';
 import { DailySheetResponseDto } from './dto/daily-sheet-response.dto';
 import { DailySheetQueryPaginationDto } from './dto/daily-sheet-query-pagination.dto';
 import { DailySheetListItemDto } from './dto/daily-sheet-list-item.dto';
+import { DailySheetByDateResponseDto } from './dto/daily-sheet-by-date-response.dto';
 import { MonthlyBalanceSheetQueryDto } from './dto/monthly-balance-sheet-query.dto';
 import { MonthlyBalanceSheetResponseDto } from './dto/monthly-balance-sheet-response.dto';
 import {
@@ -68,6 +69,19 @@ export class DailySheetsController {
     @Query() query: DailySheetQueryPaginationDto,
   ): Promise<PaginatedResponse<DailySheetListItemDto>> {
     return this.dailySheetsService.findAll(query);
+  }
+
+  @Get('by-date')
+  @ApiOperation({ summary: 'Get daily sheets by date with transaction details' })
+  @ApiResponse({
+    status: 200,
+    description: 'Daily sheets retrieved successfully',
+    type: [DailySheetByDateResponseDto],
+  })
+  async findByDateWithDetails(
+    @Query('fromDate') fromDate: string,
+  ): Promise<DailySheetByDateResponseDto[]> {
+    return this.dailySheetsService.findByDateWithDetails(fromDate);
   }
 
   @Get('date/:date')

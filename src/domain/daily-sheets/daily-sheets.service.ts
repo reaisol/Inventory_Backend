@@ -16,12 +16,14 @@ import {
   Exchange,
   OrderStatus,
   MetalType,
+  MetalPrice,
 } from '@app/database';
 import { CreateDailySheetDto } from './dto/create-daily-sheet.dto';
 import { UpdateDailySheetDto } from './dto/update-daily-sheet.dto';
 import { DailySheetResponseDto } from './dto/daily-sheet-response.dto';
 import { DailySheetQueryPaginationDto } from './dto/daily-sheet-query-pagination.dto';
 import { DailySheetListItemDto } from './dto/daily-sheet-list-item.dto';
+import { DailySheetByDateResponseDto } from './dto/daily-sheet-by-date-response.dto';
 import { MonthlyBalanceSheetResponseDto } from './dto/monthly-balance-sheet-response.dto';
 import { plainToInstance } from 'class-transformer';
 import {
@@ -49,6 +51,8 @@ export class DailySheetsService {
     private readonly exchangeRepository: Repository<Exchange>,
     @InjectRepository(MetalType)
     private readonly metalTypeRepository: Repository<MetalType>,
+    @InjectRepository(MetalPrice)
+    private readonly metalPriceRepository: Repository<MetalPrice>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -455,7 +459,166 @@ export class DailySheetsService {
       throw new NotFoundException('Daily sheet not found');
     }
 
-    return plainToInstance(DailySheetResponseDto, dailySheet, {
+    // Expand order-linked transactions into per-item rows when possible
+    const transactions = dailySheet.transactions || [];
+    const orderIds = Array.from(new Set(transactions.filter((t) => t.orderId).map((t) => t.orderId)));
+
+    const ordersMap: Record<number, any> = {};
+    if (orderIds.length > 0) {
+      const orders = await this.orderRepository.find({
+        where: orderIds.map((id) => ({ id })),
+        relations: ['orderItems', 'orderItems.product', 'orderItems.product.category'],
+      });
+      for (const o of orders) ordersMap[o.id] = o;
+    }
+
+    const expandedTransactions: any[] = [];
+
+    for (const t of transactions) {
+      if (t.orderId && ordersMap[t.orderId]) {
+        const order = ordersMap[t.orderId];
+
+        // total metal value to proportionally split exchanges and payments
+        const totalItemValue = (order.orderItems || []).reduce((s, it) => s + Number(it.totalPrice || 0), 0) || 0;
+
+        for (const item of order.orderItems || []) {
+          const product = item.product || {};
+          const itemValue = Number(item.totalPrice || 0);
+          const share = totalItemValue > 0 ? itemValue / totalItemValue : 0;
+
+          const itemGoldWeight = product.isBulkItem && product.weightPerItem
+            ? Number(product.weightPerItem || 0) * Number(item.quantity || 1)
+            : Number(product.grossWeightGm || 0) * Number(item.quantity || 1);
+
+          const makingChargesShare = Number(t.makingCharges || 0) * share;
+          const grandTotalShare = Number(t.grandTotal || 0) * share;
+          const discountShare = Number(t.discount || 0) * share;
+          const cashShare = Number(t.cashAmount || 0) * share;
+          const onlineShare = Number(t.onlineAmount || 0) * share;
+
+          const itemOldGoldWeight = Number(t.oldGoldWeight || 0) * share;
+          const itemOldGoldValue = Number(t.oldGoldValue || 0) * share;
+
+          expandedTransactions.push({
+            id: t.id,
+            transactionDate: t.transactionDate,
+            description: product.name || t.description,
+            productId: product.id,
+            categoryId: product.category?.id,
+            categoryName: product.category?.name,
+            quantity: Number(item.quantity || 1),
+            goldWeight: itemGoldWeight,
+            goldRate: itemGoldWeight > 0 ? Number(item.totalPrice || 0) / itemGoldWeight : undefined,
+            goldValue: Number(item.totalPrice || 0),
+            silverWeight: 0,
+            silverRate: undefined,
+            silverValue: 0,
+            makingCharges: makingChargesShare,
+            oldGoldWeight: itemOldGoldWeight,
+            oldGoldValue: itemOldGoldValue,
+            oldSilverWeight: 0,
+            oldSilverValue: 0,
+            grandTotal: grandTotalShare,
+            discount: discountShare,
+            cashAmount: cashShare,
+            onlineAmount: onlineShare,
+            orderId: t.orderId,
+            createdAt: t.createdAt,
+            debit: 0,
+            credit: cashShare + onlineShare,
+            balance: cashShare + onlineShare,
+            finalTotal: grandTotalShare - discountShare,
+          });
+        }
+      } else {
+        // Manual transaction or no linked order - keep as is
+        expandedTransactions.push({
+          id: t.id,
+          transactionDate: t.transactionDate,
+          description: t.description,
+          productId: undefined,
+          categoryId: undefined,
+          categoryName: undefined,
+          quantity: 1,
+          goldWeight: t.goldWeight,
+          goldRate: t.goldRate,
+          goldValue: t.goldValue,
+          silverWeight: t.silverWeight,
+          silverRate: t.silverRate,
+          silverValue: t.silverValue,
+          makingCharges: t.makingCharges,
+          oldGoldWeight: t.oldGoldWeight,
+          oldGoldValue: t.oldGoldValue,
+          oldSilverWeight: t.oldSilverWeight,
+          oldSilverValue: t.oldSilverValue,
+          grandTotal: t.grandTotal,
+          discount: t.discount,
+          cashAmount: t.cashAmount,
+          onlineAmount: t.onlineAmount,
+          orderId: t.orderId,
+          createdAt: t.createdAt,
+          debit: 0,
+          credit: Number(t.cashAmount || 0) + Number(t.onlineAmount || 0),
+          balance: Number(t.cashAmount || 0) + Number(t.onlineAmount || 0),
+          finalTotal: t.grandTotal - (t.discount || 0),
+        });
+      }
+    }
+
+    // Compute category aggregates from expanded transactions
+    const categoryMap = new Map();
+    for (const et of expandedTransactions) {
+      const catId = et.categoryId || 'unattributed';
+      const catName = et.categoryName || 'Unattributed';
+      const entry = categoryMap.get(catId) || {
+        categoryId: et.categoryId,
+        categoryName: catName,
+        totalItemsSold: 0,
+        totalGoldWeight: 0,
+        totalOldGoldWeight: 0,
+        totalOldGoldValue: 0,
+        totalRevenue: 0,
+      };
+      entry.totalItemsSold += Number(et.quantity || 1);
+      entry.totalGoldWeight += Number(et.goldWeight || 0);
+      entry.totalOldGoldWeight += Number(et.oldGoldWeight || 0);
+      entry.totalOldGoldValue += Number(et.oldGoldValue || 0);
+      entry.totalRevenue += Number(et.grandTotal || 0);
+      categoryMap.set(catId, entry);
+    }
+
+    const categoryAggregates = Array.from(categoryMap.values());
+
+    // Totals
+    const totals = expandedTransactions.reduce(
+      (acc, et) => {
+        acc.totalItemsSold += Number(et.quantity || 1);
+        acc.totalGoldWeight += Number(et.goldWeight || 0);
+        acc.totalOldGoldWeight += Number(et.oldGoldWeight || 0);
+        acc.totalOldGoldValue += Number(et.oldGoldValue || 0);
+        acc.totalRevenue += Number(et.grandTotal || 0);
+        acc.totalCash += Number(et.cashAmount || 0);
+        acc.totalOnline += Number(et.onlineAmount || 0);
+        return acc;
+      },
+      {
+        totalItemsSold: 0,
+        totalGoldWeight: 0,
+        totalOldGoldWeight: 0,
+        totalOldGoldValue: 0,
+        totalRevenue: 0,
+        totalCash: 0,
+        totalOnline: 0,
+      },
+    );
+
+    // Attach computed aggregates to a clone of dailySheet for DTO transformation
+    const sheetWithExtras: any = { ...dailySheet };
+    sheetWithExtras.transactions = expandedTransactions;
+    sheetWithExtras.categoryAggregates = categoryAggregates;
+    sheetWithExtras.totals = totals;
+
+    return plainToInstance(DailySheetResponseDto, sheetWithExtras, {
       excludeExtraneousValues: true,
     });
   }
@@ -479,6 +642,215 @@ export class DailySheetsService {
     return plainToInstance(DailySheetResponseDto, dailySheet, {
       excludeExtraneousValues: true,
     });
+  }
+
+  /**
+   * Get transactions for a date with detailed line items
+   */
+  async findByDateWithDetails(dateString: string): Promise<DailySheetByDateResponseDto[]> {
+    // Parse date (handle both YYYY-MM-DD and DD-MM-YYYY)
+    let queryDate: Date;
+    
+    if (dateString.includes('-')) {
+      const parts = dateString.split('-');
+      if (parts.length === 3) {
+        // Try YYYY-MM-DD first, then DD-MM-YYYY
+        if (parseInt(parts[0]) > 31) {
+          // YYYY-MM-DD format
+          queryDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        } else {
+          // DD-MM-YYYY format
+          queryDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+        }
+      }
+    }
+
+    if (!queryDate) {
+      throw new BadRequestException('Invalid date format. Use YYYY-MM-DD or DD-MM-YYYY');
+    }
+
+    queryDate.setHours(0, 0, 0, 0);
+
+    // Fetch daily sheet for this date
+    const dailySheet = await this.dailySheetRepository.findOne({
+      where: { date: queryDate },
+      relations: ['transactions'],
+    });
+
+    if (!dailySheet) {
+      // Return empty array if no daily sheet for this date
+      return [];
+    }
+
+    // Fetch all transactions for this daily sheet with relations
+    const transactions = await this.transactionRepository.find({
+      where: { dailySheetId: dailySheet.id },
+      relations: ['order', 'order.orderItems', 'order.orderItems.product', 'order.orderItems.product.metalType', 'order.orderItems.product.category', 'order.exchanges', 'order.exchanges.metalPurity', 'order.exchanges.metalPurity.metalType'],
+    });
+
+    // Get gold and silver metal type IDs
+    const goldType = await this.metalTypeRepository.findOne({
+      where: { code: 'GOLD' },
+    });
+    const silverType = await this.metalTypeRepository.findOne({
+      where: { code: 'SILVER' },
+    });
+
+    // Fetch current metal prices for this date
+    const metalPrices = await this.metalPriceRepository.find({
+      where: { effectiveDate: queryDate, isActive: true },
+      relations: ['metalPurity'],
+    });
+
+    const goldPrice = metalPrices.find(mp => mp.metalPurity?.metalType?.id === goldType?.id);
+    const silverPrice = metalPrices.find(mp => mp.metalPurity?.metalType?.id === silverType?.id);
+
+    // Build transaction list items
+    const lineItems: any[] = [];
+    let runningBalance = dailySheet.openingCash || 0;
+
+    for (const transaction of transactions) {
+      // Handle both orders with order items AND standalone transactions
+      if (transaction.order && transaction.order.orderItems && transaction.order.orderItems.length > 0) {
+        // For each order item, create a line item
+        for (const orderItem of transaction.order.orderItems) {
+          const product = orderItem.product;
+          const category = product?.category;
+
+          let goldWeight = 0;
+          let silverWeight = 0;
+
+          if (product?.metalType?.id === goldType?.id) {
+            goldWeight = Number(product.grossWeightGm || 0);
+          } else if (product?.metalType?.id === silverType?.id) {
+            silverWeight = Number(product.grossWeightGm || 0);
+          }
+
+          // Old gold/silver from exchanges
+          let oldGoldWeight = 0;
+          let oldGoldValue = 0;
+          let oldSilverWeight = 0;
+          let oldSilverValue = 0;
+
+          if (transaction.order.exchanges && transaction.order.exchanges.length > 0) {
+            for (const exchange of transaction.order.exchanges) {
+              if (exchange.metalPurity?.metalType?.id === goldType?.id) {
+                oldGoldWeight += Number(exchange.weightGm || 0);
+                oldGoldValue += Number(exchange.totalCredit || 0);
+              } else if (exchange.metalPurity?.metalType?.id === silverType?.id) {
+                oldSilverWeight += Number(exchange.weightGm || 0);
+                oldSilverValue += Number(exchange.totalCredit || 0);
+              }
+            }
+          }
+
+          const grandTotal = Number(orderItem.totalPrice || 0);
+          const discount = Number(transaction.discount || 0);
+        const finalTotal = grandTotal - discount;
+
+        // Calculate debit (payment) and credit (amount due)
+        const debit = (Number(transaction.cashAmount || 0)) + (Number(transaction.onlineAmount || 0));
+        const credit = finalTotal;
+
+        // Update running balance
+        runningBalance = runningBalance - debit + credit;
+
+        lineItems.push({
+          description: transaction.description || '',
+          category: category?.name || '',
+          weights: {
+            goldWeight,
+            goldPricePerGram: Number(goldPrice?.pricePerGram || 0),
+            silverWeight,
+            silverPricePerGram: Number(silverPrice?.pricePerGram || 0),
+          },
+          oneGramRate: Number(goldPrice?.pricePerGram || 0),
+          makingChargesTotal: Number(product?.makingChargesPercentage || 0) * (grandTotal / 100),
+          oldGoldWeight,
+          oldGoldValue,
+          oldSilverWeight,
+          oldSilverValue,
+          grandTotal,
+          discount,
+          finalTotal,
+          online: Number(transaction.onlineAmount || 0),
+          cash: Number(transaction.cashAmount || 0),
+          debit,
+          credit,
+          balance: runningBalance,
+        });
+        }
+      } else {
+        // Handle standalone transactions (without orders)
+        const goldWeight = Number(transaction.goldWeight || 0);
+        const silverWeight = Number(transaction.silverWeight || 0);
+        const oldGoldWeight = Number(transaction.oldGoldWeight || 0);
+        const oldGoldValue = Number(transaction.oldGoldValue || 0);
+        const oldSilverWeight = Number(transaction.oldSilverWeight || 0);
+        const oldSilverValue = Number(transaction.oldSilverValue || 0);
+
+        const grandTotal = Number(transaction.grandTotal || 0);
+        const discount = Number(transaction.discount || 0);
+        const finalTotal = grandTotal - discount;
+
+        // Calculate debit (payment) and credit (amount due)
+        const debit = (Number(transaction.cashAmount || 0)) + (Number(transaction.onlineAmount || 0));
+        const credit = finalTotal;
+
+        // Update running balance
+        runningBalance = runningBalance - debit + credit;
+
+        lineItems.push({
+          description: transaction.description || '',
+          category: '',  // No category for standalone transactions
+          weights: {
+            goldWeight,
+            goldPricePerGram: Number(goldPrice?.pricePerGram || 0),
+            silverWeight,
+            silverPricePerGram: Number(silverPrice?.pricePerGram || 0),
+          },
+          oneGramRate: Number(goldPrice?.pricePerGram || 0),
+          makingChargesTotal: Number(transaction.makingCharges || 0),
+          oldGoldWeight,
+          oldGoldValue,
+          oldSilverWeight,
+          oldSilverValue,
+          grandTotal,
+          discount,
+          finalTotal,
+          online: Number(transaction.onlineAmount || 0),
+          cash: Number(transaction.cashAmount || 0),
+          debit,
+          credit,
+          balance: runningBalance,
+        });
+      }
+    }
+
+    // Calculate totals
+    const totalDebit = lineItems.reduce((sum, item) => sum + item.debit, 0);
+    const totalCredit = lineItems.reduce((sum, item) => sum + item.credit, 0);
+
+    // Format date as DD-MM-YYYY
+    const day = String(queryDate.getDate()).padStart(2, '0');
+    const month = String(queryDate.getMonth() + 1).padStart(2, '0');
+    const year = queryDate.getFullYear();
+    const formattedDate = `${day}-${month}-${year}`;
+
+    // Return as array with single day group
+    return [
+      plainToInstance(DailySheetByDateResponseDto, {
+        date: formattedDate,
+        openingCash: dailySheet.openingCash || 0,
+        totalCredit,
+        totalDebit,
+        closingCash: dailySheet.closingCash || 0,
+        status: 'completed',
+        list: lineItems,
+      }, {
+        excludeExtraneousValues: true,
+      }),
+    ];
   }
 
   /**

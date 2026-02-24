@@ -1,5 +1,6 @@
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
+import * as bcryptjs from 'bcryptjs';
 import {
   MetalType,
   MetalPurity,
@@ -263,9 +264,10 @@ async function seedData() {
       where: { email: 'bhargava@example.com' },
     });
     if (!superAdminUser) {
+      const hashedPassword = await bcryptjs.hash('bhargava@123', 10);
       superAdminUser = userRepo.create({
         email: 'bhargava@example.com',
-        password: 'bhargava@123',
+        password: hashedPassword,
         name: 'Bhargava',
         roles: [superAdmin],
       });

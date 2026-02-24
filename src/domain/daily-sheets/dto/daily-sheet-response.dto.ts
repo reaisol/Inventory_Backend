@@ -26,6 +26,22 @@ class DailySheetTransactionDto {
   @Expose()
   goldValue: number;
 
+  @ApiPropertyOptional()
+  @Expose()
+  productId?: number;
+
+  @ApiPropertyOptional()
+  @Expose()
+  categoryId?: number;
+
+  @ApiPropertyOptional()
+  @Expose()
+  categoryName?: string;
+
+  @ApiPropertyOptional()
+  @Expose()
+  quantity?: number;
+
   @ApiProperty()
   @Expose()
   silverWeight: number;
@@ -62,6 +78,10 @@ class DailySheetTransactionDto {
   @Expose()
   grandTotal: number;
 
+  @ApiPropertyOptional()
+  @Expose()
+  finalTotal?: number;
+
   @ApiProperty()
   @Expose()
   discount: number;
@@ -77,6 +97,18 @@ class DailySheetTransactionDto {
   @ApiPropertyOptional()
   @Expose()
   orderId?: number;
+
+  @ApiPropertyOptional()
+  @Expose()
+  debit?: number;
+
+  @ApiPropertyOptional()
+  @Expose()
+  credit?: number;
+
+  @ApiPropertyOptional()
+  @Expose()
+  balance?: number;
 
   @ApiProperty()
   @Expose()
@@ -125,6 +157,36 @@ class DailySheetExpenseDto {
   @ApiProperty()
   @Expose()
   createdAt: Date;
+}
+
+class CategoryAggregateDto {
+  @ApiPropertyOptional()
+  @Expose()
+  categoryId?: number;
+
+  @ApiPropertyOptional()
+  @Expose()
+  categoryName?: string;
+
+  @ApiProperty()
+  @Expose()
+  totalItemsSold: number;
+
+  @ApiProperty()
+  @Expose()
+  totalGoldWeight: number;
+
+  @ApiProperty()
+  @Expose()
+  totalOldGoldWeight: number;
+
+  @ApiProperty()
+  @Expose()
+  totalOldGoldValue: number;
+
+  @ApiProperty()
+  @Expose()
+  totalRevenue: number;
 }
 
 @Exclude()
@@ -279,6 +341,15 @@ export class DailySheetResponseDto {
   @Expose()
   @Type(() => DailySheetExpenseDto)
   expenses: DailySheetExpenseDto[];
+
+  @ApiPropertyOptional({ type: [CategoryAggregateDto] })
+  @Expose()
+  @Type(() => CategoryAggregateDto)
+  categoryAggregates?: CategoryAggregateDto[];
+
+  @ApiPropertyOptional()
+  @Expose()
+  totals?: any;
 }
 
 

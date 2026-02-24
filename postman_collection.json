@@ -1,0 +1,128 @@
+{
+  "info": {
+    "name": "Inventory Backend API",
+    "_postman_id": "inventory-backend-collection",
+    "description": "Basic collection to test auth and daily-sheets endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var json = pm.response.json();",
+              "if (json.accessToken) pm.environment.set('jwt', json.accessToken);",
+              "else if (json.token) pm.environment.set('jwt', json.token);",
+              "else if (json.data && json.data.token) pm.environment.set('jwt', json.data.token);",
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET /daily-sheets/:id",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/daily-sheets/{{dailySheetId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "daily-sheets",
+            "{{dailySheetId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "POST /daily-sheets",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"date\": \"2026-02-23\",\n  \"openingBalance\": 1000,\n  \"transactions\": [\n    {\n      \"type\": \"SALE\",\n      \"paymentMethod\": \"CASH\",\n      \"amount\": 500,\n      \"productId\": 12,\n      \"categoryId\": 3,\n      \"quantity\": 1\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/daily-sheets",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "daily-sheets"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var body = pm.response.json();",
+              "if (body.id) pm.environment.set('dailySheetId', body.id);",
+              "else if (body.data && body.data.id) pm.environment.set('dailySheetId', body.data.id);",
+              "pm.test('Status code is 201 or 200', function () { pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "jwt",
+      "value": ""
+    },
+    {
+      "key": "dailySheetId",
+      "value": ""
+    }
+  ]
+}

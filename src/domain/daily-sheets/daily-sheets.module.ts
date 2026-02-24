@@ -9,6 +9,7 @@ import {
   OrderItem,
   Exchange,
   MetalType,
+  MetalPrice,
 } from '@app/database';
 import { DailySheetsService } from './daily-sheets.service';
 import { DailySheetsController } from './daily-sheets.controller';
@@ -25,6 +26,7 @@ import { AuthenticationModule } from '@app/authentication';
       OrderItem,
       Exchange,
       MetalType,
+      MetalPrice,
     ]),
     AuthenticationModule,
   ],

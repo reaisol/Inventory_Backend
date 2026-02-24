@@ -15,6 +15,21 @@ export class CreateDailySheetTransactionDto {
   @IsString()
   description: string;
 
+  @ApiPropertyOptional({ description: 'Product ID (if applicable)' })
+  @IsOptional()
+  @IsNumber()
+  productId?: number;
+
+  @ApiPropertyOptional({ description: 'Category ID (preferred for grouping)' })
+  @IsOptional()
+  @IsNumber()
+  categoryId?: number;
+
+  @ApiPropertyOptional({ description: 'Quantity of items', default: 1 })
+  @IsOptional()
+  @IsNumber()
+  quantity?: number;
+
   @ApiPropertyOptional({ description: 'Gold weight in grams', default: 0 })
   @IsOptional()
   @IsNumber()
