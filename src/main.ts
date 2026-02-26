@@ -14,11 +14,14 @@ async function bootstrap() {
     }),
   );
   const port = process.env.PORT || 3000;
-  // enable cors
+  // enable cors - temporary permissive for debugging
+  console.log('CORS_ORIGIN env:', process.env.CORS_ORIGIN);
+  
   app.enableCors({
     origin: '*',
-    methods: '*',
-    allowedHeaders: '*',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: false,
   });
 
   // Swagger setup
