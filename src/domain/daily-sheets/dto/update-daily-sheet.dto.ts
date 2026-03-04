@@ -110,7 +110,8 @@ export class UpdateDailySheetDto {
   oldInventoryReceivedGoldValue?: number;
 
   @ApiPropertyOptional({
-    description: 'Old inventory silver weight received back from karigar/refiner',
+    description:
+      'Old inventory silver weight received back from karigar/refiner',
     default: 0,
   })
   @IsOptional()
@@ -118,7 +119,8 @@ export class UpdateDailySheetDto {
   oldInventoryReceivedSilverWeight?: number;
 
   @ApiPropertyOptional({
-    description: 'Old inventory silver value received back from karigar/refiner',
+    description:
+      'Old inventory silver value received back from karigar/refiner',
     default: 0,
   })
   @IsOptional()
@@ -155,4 +157,3 @@ export class UpdateDailySheetDto {
   @Type(() => CreateDailySheetExpenseDto)
   expenses?: CreateDailySheetExpenseDto[];
 }
-

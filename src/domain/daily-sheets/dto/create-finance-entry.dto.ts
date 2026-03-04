@@ -2,7 +2,9 @@ import { IsOptional, IsString, IsNumber, IsEnum } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateFinanceEntryDto {
-  @ApiPropertyOptional({ description: 'ID (for updates, omit for new entries)' })
+  @ApiPropertyOptional({
+    description: 'ID (for updates, omit for new entries)',
+  })
   @IsOptional()
   @IsNumber()
   id?: number;
@@ -11,7 +13,10 @@ export class CreateFinanceEntryDto {
   @IsEnum(['IN', 'OUT'])
   type: 'IN' | 'OUT';
 
-  @ApiProperty({ description: 'Description', example: 'Main Branch money received' })
+  @ApiProperty({
+    description: 'Description',
+    example: 'Main Branch money received',
+  })
   @IsString()
   description: string;
 
@@ -19,5 +24,3 @@ export class CreateFinanceEntryDto {
   @IsNumber()
   amount: number;
 }
-
-

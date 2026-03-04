@@ -110,4 +110,3 @@ export class CalculateOrderResponseDto {
   @Expose()
   exchanges: ExchangeCalculationDto[];
 }
-

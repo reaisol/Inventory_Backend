@@ -11,7 +11,12 @@ import {
   UseGuards,
   Res,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { Response } from 'express';
 import { DailySheetsService } from './daily-sheets.service';
 import { CreateDailySheetDto } from './dto/create-daily-sheet.dto';
@@ -22,10 +27,7 @@ import { DailySheetListItemDto } from './dto/daily-sheet-list-item.dto';
 import { DailySheetByDateResponseDto } from './dto/daily-sheet-by-date-response.dto';
 import { MonthlyBalanceSheetQueryDto } from './dto/monthly-balance-sheet-query.dto';
 import { MonthlyBalanceSheetResponseDto } from './dto/monthly-balance-sheet-response.dto';
-import {
-  PaginatedResponse,
-  PaginationMeta,
-} from '../../shared/interfaces/pagination-response.interface';
+import { PaginatedResponse } from '../../shared/interfaces/pagination-response.interface';
 import {
   JwtAuthGuard,
   CurrentUserDecorator,
@@ -72,7 +74,9 @@ export class DailySheetsController {
   }
 
   @Get('by-date')
-  @ApiOperation({ summary: 'Get daily sheets by date with transaction details' })
+  @ApiOperation({
+    summary: 'Get daily sheets by date with transaction details',
+  })
   @ApiResponse({
     status: 200,
     description: 'Daily sheets retrieved successfully',
@@ -91,8 +95,13 @@ export class DailySheetsController {
     description: 'Daily sheet retrieved successfully',
     type: DailySheetResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Daily sheet not found for this date' })
-  async findByDate(@Param('date') date: string): Promise<DailySheetResponseDto> {
+  @ApiResponse({
+    status: 404,
+    description: 'Daily sheet not found for this date',
+  })
+  async findByDate(
+    @Param('date') date: string,
+  ): Promise<DailySheetResponseDto> {
     return this.dailySheetsService.findByDate(new Date(date));
   }
 
@@ -130,10 +139,11 @@ export class DailySheetsController {
     @Query() query: MonthlyBalanceSheetQueryDto,
     @Res() res: Response,
   ): Promise<void> {
-    const workbook = await this.dailySheetsService.exportMonthlyBalanceSheetToExcel(
-      query.year,
-      query.month,
-    );
+    const workbook =
+      await this.dailySheetsService.exportMonthlyBalanceSheetToExcel(
+        query.year,
+        query.month,
+      );
 
     const monthNames = [
       'January',
@@ -169,7 +179,10 @@ export class DailySheetsController {
     description: 'Daily sheet created successfully',
     type: DailySheetResponseDto,
   })
-  @ApiResponse({ status: 409, description: 'Daily sheet already exists for this date' })
+  @ApiResponse({
+    status: 409,
+    description: 'Daily sheet already exists for this date',
+  })
   async create(
     @Body() createDto: CreateDailySheetDto,
     @CurrentUserDecorator() user: CurrentUser,
@@ -215,15 +228,23 @@ export class DailySheetsController {
   }
 
   @Post(':id/refresh')
-  @ApiOperation({ summary: 'Refresh daily sheet - regenerate transactions from orders and recalculate balance' })
+  @ApiOperation({
+    summary:
+      'Refresh daily sheet - regenerate transactions from orders and recalculate balance',
+  })
   @ApiResponse({
     status: 200,
     description: 'Daily sheet refreshed successfully',
     type: DailySheetResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Daily sheet not found' })
-  @ApiResponse({ status: 400, description: 'Cannot refresh locked daily sheet' })
-  async refresh(@Param('id', ParseIntPipe) id: number): Promise<DailySheetResponseDto> {
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot refresh locked daily sheet',
+  })
+  async refresh(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<DailySheetResponseDto> {
     return this.dailySheetsService.refresh(id);
   }
 
@@ -235,7 +256,9 @@ export class DailySheetsController {
     type: DailySheetResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Daily sheet not found' })
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<DailySheetResponseDto> {
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<DailySheetResponseDto> {
     return this.dailySheetsService.findOne(id);
   }
 
@@ -316,4 +339,3 @@ export class DailySheetsController {
     return { message: 'Daily sheet deleted successfully' };
   }
 }
-

@@ -5,7 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, Between } from 'typeorm';
+import { Repository, DataSource, Between, LessThanOrEqual } from 'typeorm';
 import {
   DailySheet,
   DailySheetTransaction,
@@ -177,7 +177,10 @@ export class DailySheetsService {
 
       if (order.paymentMethod === 'CASH') {
         cashAmount = Number(order.totalAmount);
-      } else if (order.paymentMethod === 'CARD' || order.paymentMethod === 'UPI') {
+      } else if (
+        order.paymentMethod === 'CARD' ||
+        order.paymentMethod === 'UPI'
+      ) {
         onlineAmount = Number(order.totalAmount);
       } else if (order.paymentMethod === 'MIXED') {
         // For MIXED, split equally or based on your logic
@@ -202,7 +205,9 @@ export class DailySheetsService {
         oldSilverWeight,
         oldSilverValue,
         grandTotal: Number(order.totalAmount),
-        discount: Number(order.makingDiscount || 0) + Number(order.wastageDiscount || 0),
+        discount:
+          Number(order.makingDiscount || 0) +
+          Number(order.wastageDiscount || 0),
         cashAmount,
         onlineAmount,
         orderId: order.id,
@@ -350,10 +355,18 @@ export class DailySheetsService {
       totalGoldWeight += Number(dailySheet.oldInventoryReceivedGoldWeight || 0); // Received back
       totalGoldValue += Number(dailySheet.oldInventoryReceivedGoldValue || 0); // Received back
 
-      totalSilverWeight -= Number(dailySheet.oldInventorySentOutSilverWeight || 0); // Sent out
-      totalSilverValue -= Number(dailySheet.oldInventorySentOutSilverValue || 0); // Sent out
-      totalSilverWeight += Number(dailySheet.oldInventoryReceivedSilverWeight || 0); // Received back
-      totalSilverValue += Number(dailySheet.oldInventoryReceivedSilverValue || 0); // Received back
+      totalSilverWeight -= Number(
+        dailySheet.oldInventorySentOutSilverWeight || 0,
+      ); // Sent out
+      totalSilverValue -= Number(
+        dailySheet.oldInventorySentOutSilverValue || 0,
+      ); // Sent out
+      totalSilverWeight += Number(
+        dailySheet.oldInventoryReceivedSilverWeight || 0,
+      ); // Received back
+      totalSilverValue += Number(
+        dailySheet.oldInventoryReceivedSilverValue || 0,
+      ); // Received back
 
       // Add finance IN
       for (const finance of dailySheet.financeEntries || []) {
@@ -387,15 +400,8 @@ export class DailySheetsService {
   async findAll(
     paginationQuery: DailySheetQueryPaginationDto,
   ): Promise<PaginatedResponse<DailySheetListItemDto>> {
-    const {
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-      startDate,
-      endDate,
-      isLocked,
-    } = paginationQuery;
+    const { page, limit, sortBy, sortOrder, startDate, endDate, isLocked } =
+      paginationQuery;
     const skip = (page - 1) * limit;
 
     const query = this.dailySheetRepository.createQueryBuilder('dailySheet');
@@ -419,9 +425,7 @@ export class DailySheetsService {
 
     // Apply sorting
     if (sortBy) {
-      const sortField = sortBy.includes('.')
-        ? sortBy
-        : `dailySheet.${sortBy}`;
+      const sortField = sortBy.includes('.') ? sortBy : `dailySheet.${sortBy}`;
       query.orderBy(sortField, sortOrder);
     } else {
       query.orderBy('dailySheet.date', 'DESC');
@@ -461,13 +465,19 @@ export class DailySheetsService {
 
     // Expand order-linked transactions into per-item rows when possible
     const transactions = dailySheet.transactions || [];
-    const orderIds = Array.from(new Set(transactions.filter((t) => t.orderId).map((t) => t.orderId)));
+    const orderIds = Array.from(
+      new Set(transactions.filter((t) => t.orderId).map((t) => t.orderId)),
+    );
 
     const ordersMap: Record<number, any> = {};
     if (orderIds.length > 0) {
       const orders = await this.orderRepository.find({
         where: orderIds.map((id) => ({ id })),
-        relations: ['orderItems', 'orderItems.product', 'orderItems.product.category'],
+        relations: [
+          'orderItems',
+          'orderItems.product',
+          'orderItems.product.category',
+        ],
       });
       for (const o of orders) ordersMap[o.id] = o;
     }
@@ -479,16 +489,21 @@ export class DailySheetsService {
         const order = ordersMap[t.orderId];
 
         // total metal value to proportionally split exchanges and payments
-        const totalItemValue = (order.orderItems || []).reduce((s, it) => s + Number(it.totalPrice || 0), 0) || 0;
+        const totalItemValue =
+          (order.orderItems || []).reduce(
+            (s, it) => s + Number(it.totalPrice || 0),
+            0,
+          ) || 0;
 
         for (const item of order.orderItems || []) {
           const product = item.product || {};
           const itemValue = Number(item.totalPrice || 0);
           const share = totalItemValue > 0 ? itemValue / totalItemValue : 0;
 
-          const itemGoldWeight = product.isBulkItem && product.weightPerItem
-            ? Number(product.weightPerItem || 0) * Number(item.quantity || 1)
-            : Number(product.grossWeightGm || 0) * Number(item.quantity || 1);
+          const itemGoldWeight =
+            product.isBulkItem && product.weightPerItem
+              ? Number(product.weightPerItem || 0) * Number(item.quantity || 1)
+              : Number(product.grossWeightGm || 0) * Number(item.quantity || 1);
 
           const makingChargesShare = Number(t.makingCharges || 0) * share;
           const grandTotalShare = Number(t.grandTotal || 0) * share;
@@ -508,7 +523,10 @@ export class DailySheetsService {
             categoryName: product.category?.name,
             quantity: Number(item.quantity || 1),
             goldWeight: itemGoldWeight,
-            goldRate: itemGoldWeight > 0 ? Number(item.totalPrice || 0) / itemGoldWeight : undefined,
+            goldRate:
+              itemGoldWeight > 0
+                ? Number(item.totalPrice || 0) / itemGoldWeight
+                : undefined,
             goldValue: Number(item.totalPrice || 0),
             silverWeight: 0,
             silverRate: undefined,
@@ -647,26 +665,38 @@ export class DailySheetsService {
   /**
    * Get transactions for a date with detailed line items
    */
-  async findByDateWithDetails(dateString: string): Promise<DailySheetByDateResponseDto[]> {
+  async findByDateWithDetails(
+    dateString: string,
+  ): Promise<DailySheetByDateResponseDto[]> {
     // Parse date (handle both YYYY-MM-DD and DD-MM-YYYY)
     let queryDate: Date;
-    
+
     if (dateString.includes('-')) {
       const parts = dateString.split('-');
       if (parts.length === 3) {
         // Try YYYY-MM-DD first, then DD-MM-YYYY
         if (parseInt(parts[0]) > 31) {
           // YYYY-MM-DD format
-          queryDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+          queryDate = new Date(
+            parseInt(parts[0]),
+            parseInt(parts[1]) - 1,
+            parseInt(parts[2]),
+          );
         } else {
           // DD-MM-YYYY format
-          queryDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          queryDate = new Date(
+            parseInt(parts[2]),
+            parseInt(parts[1]) - 1,
+            parseInt(parts[0]),
+          );
         }
       }
     }
 
     if (!queryDate) {
-      throw new BadRequestException('Invalid date format. Use YYYY-MM-DD or DD-MM-YYYY');
+      throw new BadRequestException(
+        'Invalid date format. Use YYYY-MM-DD or DD-MM-YYYY',
+      );
     }
 
     queryDate.setHours(0, 0, 0, 0);
@@ -685,7 +715,17 @@ export class DailySheetsService {
     // Fetch all transactions for this daily sheet with relations
     const transactions = await this.transactionRepository.find({
       where: { dailySheetId: dailySheet.id },
-      relations: ['order', 'order.orderItems', 'order.orderItems.product', 'order.orderItems.product.metalType', 'order.orderItems.product.category', 'order.exchanges', 'order.exchanges.metalPurity', 'order.exchanges.metalPurity.metalType'],
+      relations: [
+        'order',
+        'order.orderItems',
+        'order.orderItems.product',
+        'order.orderItems.product.metalPurity',
+        'order.orderItems.product.metalType',
+        'order.orderItems.product.category',
+        'order.exchanges',
+        'order.exchanges.metalPurity',
+        'order.exchanges.metalPurity.metalType',
+      ],
     });
 
     // Get gold and silver metal type IDs
@@ -696,22 +736,63 @@ export class DailySheetsService {
       where: { code: 'SILVER' },
     });
 
-    // Fetch current metal prices for this date
     const metalPrices = await this.metalPriceRepository.find({
-      where: { effectiveDate: queryDate, isActive: true },
-      relations: ['metalPurity'],
+      where: { isActive: true, effectiveDate: LessThanOrEqual(queryDate) },
+      relations: ['metalPurity', 'metalPurity.metalType'],
+      order: { effectiveDate: 'DESC' },
     });
-
-    const goldPrice = metalPrices.find(mp => mp.metalPurity?.metalType?.id === goldType?.id);
-    const silverPrice = metalPrices.find(mp => mp.metalPurity?.metalType?.id === silverType?.id);
+    const fallbackMetalPrices = await this.metalPriceRepository.find({
+      where: { isActive: true },
+      relations: ['metalPurity', 'metalPurity.metalType'],
+      order: { effectiveDate: 'DESC' },
+    });
+    const latestGoldPricePerGram =
+      metalPrices.find((mp) => mp.metalPurity?.metalType?.id === goldType?.id)
+        ?.pricePerGram ??
+      fallbackMetalPrices.find(
+        (mp) => mp.metalPurity?.metalType?.id === goldType?.id,
+      )?.pricePerGram ??
+      0;
+    const latestSilverPricePerGram =
+      metalPrices.find((mp) => mp.metalPurity?.metalType?.id === silverType?.id)
+        ?.pricePerGram ??
+      fallbackMetalPrices.find(
+        (mp) => mp.metalPurity?.metalType?.id === silverType?.id,
+      )?.pricePerGram ??
+      0;
+    const getRateForPurity = async (purityId?: number) => {
+      if (!purityId) return 0;
+      const p = await this.metalPriceRepository.findOne({
+        where: {
+          metalPurityId: purityId,
+          isActive: true,
+          effectiveDate: LessThanOrEqual(queryDate),
+        },
+        relations: ['metalPurity'],
+        order: { effectiveDate: 'DESC' },
+      });
+      if (p?.pricePerGram) return Number(p.pricePerGram);
+      const latest = await this.metalPriceRepository.findOne({
+        where: { metalPurityId: purityId, isActive: true },
+        relations: ['metalPurity'],
+        order: { effectiveDate: 'DESC' },
+      });
+      return Number(latest?.pricePerGram || 0);
+    };
 
     // Build transaction list items
     const lineItems: any[] = [];
     let runningBalance = dailySheet.openingCash || 0;
+    let totalDebit = 0;
+    let totalCredit = 0;
 
     for (const transaction of transactions) {
       // Handle both orders with order items AND standalone transactions
-      if (transaction.order && transaction.order.orderItems && transaction.order.orderItems.length > 0) {
+      if (
+        transaction.order &&
+        transaction.order.orderItems &&
+        transaction.order.orderItems.length > 0
+      ) {
         // For each order item, create a line item
         for (const orderItem of transaction.order.orderItems) {
           const product = orderItem.product;
@@ -732,12 +813,17 @@ export class DailySheetsService {
           let oldSilverWeight = 0;
           let oldSilverValue = 0;
 
-          if (transaction.order.exchanges && transaction.order.exchanges.length > 0) {
+          if (
+            transaction.order.exchanges &&
+            transaction.order.exchanges.length > 0
+          ) {
             for (const exchange of transaction.order.exchanges) {
               if (exchange.metalPurity?.metalType?.id === goldType?.id) {
                 oldGoldWeight += Number(exchange.weightGm || 0);
                 oldGoldValue += Number(exchange.totalCredit || 0);
-              } else if (exchange.metalPurity?.metalType?.id === silverType?.id) {
+              } else if (
+                exchange.metalPurity?.metalType?.id === silverType?.id
+              ) {
                 oldSilverWeight += Number(exchange.weightGm || 0);
                 oldSilverValue += Number(exchange.totalCredit || 0);
               }
@@ -746,39 +832,55 @@ export class DailySheetsService {
 
           const grandTotal = Number(orderItem.totalPrice || 0);
           const discount = Number(transaction.discount || 0);
-        const finalTotal = grandTotal - discount;
+          const finalTotal = grandTotal - discount;
 
-        // Calculate debit (payment) and credit (amount due)
-        const debit = (Number(transaction.cashAmount || 0)) + (Number(transaction.onlineAmount || 0));
-        const credit = finalTotal;
+          const credit = finalTotal;
+          const cashAmount = Number(transaction.cashAmount || 0);
+          const onlineAmount = Number(transaction.onlineAmount || 0);
+          const debitCalc = cashAmount + onlineAmount;
 
-        // Update running balance
-        runningBalance = runningBalance - debit + credit;
+          runningBalance = runningBalance - debitCalc + credit;
+          totalDebit += debitCalc;
+          totalCredit += credit;
 
-        lineItems.push({
-          description: transaction.description || '',
-          category: category?.name || '',
-          weights: {
-            goldWeight,
-            goldPricePerGram: Number(goldPrice?.pricePerGram || 0),
-            silverWeight,
-            silverPricePerGram: Number(silverPrice?.pricePerGram || 0),
-          },
-          oneGramRate: Number(goldPrice?.pricePerGram || 0),
-          makingChargesTotal: Number(product?.makingChargesPercentage || 0) * (grandTotal / 100),
-          oldGoldWeight,
-          oldGoldValue,
-          oldSilverWeight,
-          oldSilverValue,
-          grandTotal,
-          discount,
-          finalTotal,
-          online: Number(transaction.onlineAmount || 0),
-          cash: Number(transaction.cashAmount || 0),
-          debit,
-          credit,
-          balance: runningBalance,
-        });
+          const itemRatePerGram =
+            product?.metalType?.id === goldType?.id
+              ? (await getRateForPurity(product?.metalPurity?.id)) ||
+                latestGoldPricePerGram
+              : product?.metalType?.id === silverType?.id
+                ? (await getRateForPurity(product?.metalPurity?.id)) ||
+                  latestSilverPricePerGram
+                : 0;
+          const goldPricePerGram =
+            product?.metalType?.id === goldType?.id ? itemRatePerGram : 0;
+          const silverPricePerGram =
+            product?.metalType?.id === silverType?.id ? itemRatePerGram : 0;
+
+          lineItems.push({
+            description: transaction.description || '',
+            category: category?.name || '',
+            weights: {
+              goldWeight,
+              goldPricePerGram: Number(goldPricePerGram),
+              silverWeight,
+              silverPricePerGram: Number(silverPricePerGram),
+            },
+            oneGramRate: Number(itemRatePerGram),
+            makingChargesTotal:
+              Number(product?.makingChargesPercentage || 0) *
+              (grandTotal / 100),
+            oldGoldWeight,
+            oldGoldValue,
+            oldSilverWeight,
+            oldSilverValue,
+            grandTotal,
+            discount,
+            finalTotal,
+            online: onlineAmount,
+            cash: cashAmount,
+            credit,
+            balance: runningBalance,
+          });
         }
       } else {
         // Handle standalone transactions (without orders)
@@ -793,23 +895,36 @@ export class DailySheetsService {
         const discount = Number(transaction.discount || 0);
         const finalTotal = grandTotal - discount;
 
-        // Calculate debit (payment) and credit (amount due)
-        const debit = (Number(transaction.cashAmount || 0)) + (Number(transaction.onlineAmount || 0));
         const credit = finalTotal;
+        const cashAmount = Number(transaction.cashAmount || 0);
+        const onlineAmount = Number(transaction.onlineAmount || 0);
+        const debitCalc = cashAmount + onlineAmount;
 
-        // Update running balance
-        runningBalance = runningBalance - debit + credit;
+        runningBalance = runningBalance - debitCalc + credit;
+        totalDebit += debitCalc;
+        totalCredit += credit;
+
+        const standaloneGoldRate =
+          Number(transaction.goldRate || 0) || latestGoldPricePerGram;
+        const standaloneSilverRate =
+          Number(transaction.silverRate || 0) || latestSilverPricePerGram;
+        const oneGramRate =
+          goldWeight > 0
+            ? standaloneGoldRate
+            : silverWeight > 0
+              ? standaloneSilverRate
+              : 0;
 
         lineItems.push({
           description: transaction.description || '',
-          category: '',  // No category for standalone transactions
+          category: '', // No category for standalone transactions
           weights: {
             goldWeight,
-            goldPricePerGram: Number(goldPrice?.pricePerGram || 0),
+            goldPricePerGram: Number(standaloneGoldRate),
             silverWeight,
-            silverPricePerGram: Number(silverPrice?.pricePerGram || 0),
+            silverPricePerGram: Number(standaloneSilverRate),
           },
-          oneGramRate: Number(goldPrice?.pricePerGram || 0),
+          oneGramRate: Number(oneGramRate),
           makingChargesTotal: Number(transaction.makingCharges || 0),
           oldGoldWeight,
           oldGoldValue,
@@ -818,18 +933,45 @@ export class DailySheetsService {
           grandTotal,
           discount,
           finalTotal,
-          online: Number(transaction.onlineAmount || 0),
-          cash: Number(transaction.cashAmount || 0),
-          debit,
+          online: onlineAmount,
+          cash: cashAmount,
           credit,
           balance: runningBalance,
         });
       }
     }
 
-    // Calculate totals
-    const totalDebit = lineItems.reduce((sum, item) => sum + item.debit, 0);
-    const totalCredit = lineItems.reduce((sum, item) => sum + item.credit, 0);
+    const expenses = await this.dailySheetExpenseRepository.find({
+      where: { dailySheetId: dailySheet.id },
+    });
+    for (const e of expenses || []) {
+      const amount = Number(e.amount || 0);
+      runningBalance = runningBalance - amount;
+      totalDebit += amount;
+      lineItems.push({
+        description: e.description || '',
+        category: 'Expense',
+        weights: {
+          goldWeight: 0,
+          goldPricePerGram: 0,
+          silverWeight: 0,
+          silverPricePerGram: 0,
+        },
+        oneGramRate: 0,
+        makingChargesTotal: 0,
+        oldGoldWeight: 0,
+        oldGoldValue: 0,
+        oldSilverWeight: 0,
+        oldSilverValue: 0,
+        grandTotal: amount,
+        discount: 0,
+        finalTotal: amount,
+        online: 0,
+        cash: amount,
+        credit: 0,
+        balance: runningBalance,
+      });
+    }
 
     // Format date as DD-MM-YYYY
     const day = String(queryDate.getDate()).padStart(2, '0');
@@ -839,17 +981,21 @@ export class DailySheetsService {
 
     // Return as array with single day group
     return [
-      plainToInstance(DailySheetByDateResponseDto, {
-        date: formattedDate,
-        openingCash: dailySheet.openingCash || 0,
-        totalCredit,
-        totalDebit,
-        closingCash: dailySheet.closingCash || 0,
-        status: 'completed',
-        list: lineItems,
-      }, {
-        excludeExtraneousValues: true,
-      }),
+      plainToInstance(
+        DailySheetByDateResponseDto,
+        {
+          date: formattedDate,
+          openingCash: Number(dailySheet.openingCash || 0).toFixed(2),
+          totalCredit,
+          totalDebit,
+          closingCash: Number(dailySheet.closingCash || 0).toFixed(2),
+          status: 'completed',
+          list: lineItems,
+        },
+        {
+          excludeExtraneousValues: true,
+        },
+      ),
     ];
   }
 
@@ -863,7 +1009,7 @@ export class DailySheetsService {
     // Calculate date range for the month
     const startDate = new Date(year, month - 1, 1);
     startDate.setHours(0, 0, 0, 0);
-    
+
     const endDate = new Date(year, month, 0); // Last day of month
     endDate.setHours(23, 59, 59, 999);
 
@@ -1100,9 +1246,13 @@ export class DailySheetsService {
 
     // Title
     worksheet.mergeCells('A1:E1');
-    worksheet.getCell('A1').value = `Monthly Balance Sheet - ${monthlyData.monthName}`;
+    worksheet.getCell('A1').value =
+      `Monthly Balance Sheet - ${monthlyData.monthName}`;
     worksheet.getCell('A1').font = { size: 16, bold: true };
-    worksheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getCell('A1').alignment = {
+      horizontal: 'center',
+      vertical: 'middle',
+    };
     worksheet.getRow(1).height = 25;
 
     let currentRow = 3;
@@ -1119,7 +1269,8 @@ export class DailySheetsService {
     currentRow += 2;
 
     // Opening Balance Section
-    worksheet.getCell(`A${currentRow}`).value = 'Opening Balance (First Day of Month)';
+    worksheet.getCell(`A${currentRow}`).value =
+      'Opening Balance (First Day of Month)';
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
     currentRow++;
 
@@ -1142,7 +1293,8 @@ export class DailySheetsService {
     currentRow += 2;
 
     // Closing Balance Section
-    worksheet.getCell(`A${currentRow}`).value = 'Closing Balance (Last Day of Month)';
+    worksheet.getCell(`A${currentRow}`).value =
+      'Closing Balance (Last Day of Month)';
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
     currentRow++;
 
@@ -1170,27 +1322,34 @@ export class DailySheetsService {
     currentRow++;
 
     worksheet.getCell(`A${currentRow}`).value = 'Sales Gold Weight (gm):';
-    worksheet.getCell(`B${currentRow}`).value = monthlyData.totalSalesGoldWeight;
+    worksheet.getCell(`B${currentRow}`).value =
+      monthlyData.totalSalesGoldWeight;
     worksheet.getCell(`C${currentRow}`).value = 'Sales Gold Value:';
     worksheet.getCell(`D${currentRow}`).value = monthlyData.totalSalesGoldValue;
     currentRow++;
 
     worksheet.getCell(`A${currentRow}`).value = 'Sales Silver Weight (gm):';
-    worksheet.getCell(`B${currentRow}`).value = monthlyData.totalSalesSilverWeight;
+    worksheet.getCell(`B${currentRow}`).value =
+      monthlyData.totalSalesSilverWeight;
     worksheet.getCell(`C${currentRow}`).value = 'Sales Silver Value:';
-    worksheet.getCell(`D${currentRow}`).value = monthlyData.totalSalesSilverValue;
+    worksheet.getCell(`D${currentRow}`).value =
+      monthlyData.totalSalesSilverValue;
     currentRow++;
 
     worksheet.getCell(`A${currentRow}`).value = 'Exchange Gold Weight (gm):';
-    worksheet.getCell(`B${currentRow}`).value = monthlyData.totalExchangesGoldWeight;
+    worksheet.getCell(`B${currentRow}`).value =
+      monthlyData.totalExchangesGoldWeight;
     worksheet.getCell(`C${currentRow}`).value = 'Exchange Gold Value:';
-    worksheet.getCell(`D${currentRow}`).value = monthlyData.totalExchangesGoldValue;
+    worksheet.getCell(`D${currentRow}`).value =
+      monthlyData.totalExchangesGoldValue;
     currentRow++;
 
     worksheet.getCell(`A${currentRow}`).value = 'Exchange Silver Weight (gm):';
-    worksheet.getCell(`B${currentRow}`).value = monthlyData.totalExchangesSilverWeight;
+    worksheet.getCell(`B${currentRow}`).value =
+      monthlyData.totalExchangesSilverWeight;
     worksheet.getCell(`C${currentRow}`).value = 'Exchange Silver Value:';
-    worksheet.getCell(`D${currentRow}`).value = monthlyData.totalExchangesSilverValue;
+    worksheet.getCell(`D${currentRow}`).value =
+      monthlyData.totalExchangesSilverValue;
     currentRow++;
 
     worksheet.getCell(`A${currentRow}`).value = 'Total Making Charges:';
@@ -1213,31 +1372,40 @@ export class DailySheetsService {
     currentRow++;
 
     worksheet.getCell(`A${currentRow}`).value = 'Gold Weight (gm):';
-    worksheet.getCell(`B${currentRow}`).value = monthlyData.totalOldInventorySentOutGoldWeight;
+    worksheet.getCell(`B${currentRow}`).value =
+      monthlyData.totalOldInventorySentOutGoldWeight;
     worksheet.getCell(`C${currentRow}`).value = 'Gold Value:';
-    worksheet.getCell(`D${currentRow}`).value = monthlyData.totalOldInventorySentOutGoldValue;
+    worksheet.getCell(`D${currentRow}`).value =
+      monthlyData.totalOldInventorySentOutGoldValue;
     currentRow++;
 
     worksheet.getCell(`A${currentRow}`).value = 'Silver Weight (gm):';
-    worksheet.getCell(`B${currentRow}`).value = monthlyData.totalOldInventorySentOutSilverWeight;
+    worksheet.getCell(`B${currentRow}`).value =
+      monthlyData.totalOldInventorySentOutSilverWeight;
     worksheet.getCell(`C${currentRow}`).value = 'Silver Value:';
-    worksheet.getCell(`D${currentRow}`).value = monthlyData.totalOldInventorySentOutSilverValue;
+    worksheet.getCell(`D${currentRow}`).value =
+      monthlyData.totalOldInventorySentOutSilverValue;
     currentRow += 2;
 
-    worksheet.getCell(`A${currentRow}`).value = 'Received Back from Karigar/Refiner:';
+    worksheet.getCell(`A${currentRow}`).value =
+      'Received Back from Karigar/Refiner:';
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
     currentRow++;
 
     worksheet.getCell(`A${currentRow}`).value = 'Gold Weight (gm):';
-    worksheet.getCell(`B${currentRow}`).value = monthlyData.totalOldInventoryReceivedGoldWeight;
+    worksheet.getCell(`B${currentRow}`).value =
+      monthlyData.totalOldInventoryReceivedGoldWeight;
     worksheet.getCell(`C${currentRow}`).value = 'Gold Value:';
-    worksheet.getCell(`D${currentRow}`).value = monthlyData.totalOldInventoryReceivedGoldValue;
+    worksheet.getCell(`D${currentRow}`).value =
+      monthlyData.totalOldInventoryReceivedGoldValue;
     currentRow++;
 
     worksheet.getCell(`A${currentRow}`).value = 'Silver Weight (gm):';
-    worksheet.getCell(`B${currentRow}`).value = monthlyData.totalOldInventoryReceivedSilverWeight;
+    worksheet.getCell(`B${currentRow}`).value =
+      monthlyData.totalOldInventoryReceivedSilverWeight;
     worksheet.getCell(`C${currentRow}`).value = 'Silver Value:';
-    worksheet.getCell(`D${currentRow}`).value = monthlyData.totalOldInventoryReceivedSilverValue;
+    worksheet.getCell(`D${currentRow}`).value =
+      monthlyData.totalOldInventoryReceivedSilverValue;
     currentRow += 2;
 
     // Finance & Expenses Section
@@ -1263,7 +1431,15 @@ export class DailySheetsService {
       worksheet.getCell(`A${currentRow}`).font = { bold: true };
       currentRow++;
 
-      const summaryHeaders = ['Date', 'Gold Wt', 'Gold Val', 'Silver Wt', 'Silver Val', 'Cash', 'Online'];
+      const summaryHeaders = [
+        'Date',
+        'Gold Wt',
+        'Gold Val',
+        'Silver Wt',
+        'Silver Val',
+        'Cash',
+        'Online',
+      ];
       worksheet.getRow(currentRow).values = summaryHeaders;
       worksheet.getRow(currentRow).font = { bold: true };
       worksheet.getRow(currentRow).fill = {
@@ -1484,9 +1660,10 @@ export class DailySheetsService {
       for (const e of updateDto.expenses) {
         if (e.id) {
           // Update existing expense
-          const existingExpense = await this.dailySheetExpenseRepository.findOne({
-            where: { id: e.id, dailySheetId: id },
-          });
+          const existingExpense =
+            await this.dailySheetExpenseRepository.findOne({
+              where: { id: e.id, dailySheetId: id },
+            });
 
           if (existingExpense) {
             existingExpense.description = e.description;
@@ -1607,7 +1784,10 @@ export class DailySheetsService {
   /**
    * Delete a finance entry from daily sheet
    */
-  async deleteFinanceEntry(dailySheetId: number, entryId: number): Promise<void> {
+  async deleteFinanceEntry(
+    dailySheetId: number,
+    entryId: number,
+  ): Promise<void> {
     const dailySheet = await this.dailySheetRepository.findOne({
       where: { id: dailySheetId },
     });
@@ -1692,7 +1872,10 @@ export class DailySheetsService {
     worksheet.mergeCells('A1:L1');
     worksheet.getCell('A1').value = `Daily Sheet - ${dateStr}`;
     worksheet.getCell('A1').font = { size: 16, bold: true };
-    worksheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getCell('A1').alignment = {
+      horizontal: 'center',
+      vertical: 'middle',
+    };
     worksheet.getRow(1).height = 25;
 
     // Opening Balance Section
@@ -1702,21 +1885,31 @@ export class DailySheetsService {
     currentRow++;
 
     worksheet.getCell(`A${currentRow}`).value = 'Gold Weight (gm):';
-    worksheet.getCell(`B${currentRow}`).value = Number(dailySheet.openingGoldWeight);
+    worksheet.getCell(`B${currentRow}`).value = Number(
+      dailySheet.openingGoldWeight,
+    );
     worksheet.getCell(`C${currentRow}`).value = 'Gold Value:';
-    worksheet.getCell(`D${currentRow}`).value = Number(dailySheet.openingGoldValue);
+    worksheet.getCell(`D${currentRow}`).value = Number(
+      dailySheet.openingGoldValue,
+    );
     currentRow++;
 
     worksheet.getCell(`A${currentRow}`).value = 'Silver Weight (gm):';
-    worksheet.getCell(`B${currentRow}`).value = Number(dailySheet.openingSilverWeight);
+    worksheet.getCell(`B${currentRow}`).value = Number(
+      dailySheet.openingSilverWeight,
+    );
     worksheet.getCell(`C${currentRow}`).value = 'Silver Value:';
-    worksheet.getCell(`D${currentRow}`).value = Number(dailySheet.openingSilverValue);
+    worksheet.getCell(`D${currentRow}`).value = Number(
+      dailySheet.openingSilverValue,
+    );
     currentRow++;
 
     worksheet.getCell(`A${currentRow}`).value = 'Cash:';
     worksheet.getCell(`B${currentRow}`).value = Number(dailySheet.openingCash);
     worksheet.getCell(`C${currentRow}`).value = 'Online:';
-    worksheet.getCell(`D${currentRow}`).value = Number(dailySheet.openingOnline);
+    worksheet.getCell(`D${currentRow}`).value = Number(
+      dailySheet.openingOnline,
+    );
     currentRow += 2;
 
     // Transactions Section
@@ -1756,7 +1949,9 @@ export class DailySheetsService {
 
     // Transaction rows
     for (const trans of dailySheet.transactions || []) {
-      const transDate = new Date(trans.transactionDate).toLocaleDateString('en-GB');
+      const transDate = new Date(trans.transactionDate).toLocaleDateString(
+        'en-GB',
+      );
       worksheet.getRow(currentRow).values = [
         transDate,
         trans.description,
@@ -1948,7 +2143,8 @@ export class DailySheetsService {
     );
     currentRow += 2;
 
-    worksheet.getCell(`A${currentRow}`).value = 'Received Back from Karigar/Refiner:';
+    worksheet.getCell(`A${currentRow}`).value =
+      'Received Back from Karigar/Refiner:';
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
     currentRow++;
 
@@ -2031,5 +2227,3 @@ export class DailySheetsService {
     return workbook;
   }
 }
-
-

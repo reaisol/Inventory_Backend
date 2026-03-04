@@ -95,5 +95,3 @@ export class DailySheetTransaction {
   @JoinColumn({ name: 'orderId' })
   order?: Order;
 }
-
-

@@ -46,7 +46,9 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post('calculate')
-  @ApiOperation({ summary: 'Calculate order total without saving (quote/preview)' })
+  @ApiOperation({
+    summary: 'Calculate order total without saving (quote/preview)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Order calculation completed successfully',

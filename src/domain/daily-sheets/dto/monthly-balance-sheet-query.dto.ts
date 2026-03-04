@@ -15,4 +15,3 @@ export class MonthlyBalanceSheetQueryDto {
   @Type(() => Number)
   month: number;
 }
-

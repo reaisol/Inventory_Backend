@@ -35,7 +35,6 @@ export class CaslAbilityFactory {
     ability: AppAbility;
   }> {
     // Handle both user.id and user.sub for compatibility
-    const userId = user.id || (user as any).sub;
     const userRoles = user.roles || [];
 
     if (!userRoles || userRoles.length === 0) {
