@@ -42,5 +42,3 @@ export class DailySheetExpense {
   @JoinColumn({ name: 'expenseId' })
   expense?: Expense;
 }
-
-

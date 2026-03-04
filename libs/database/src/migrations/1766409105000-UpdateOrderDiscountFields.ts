@@ -1,6 +1,8 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class UpdateOrderDiscountFields1766409105000 implements MigrationInterface {
+export class UpdateOrderDiscountFields1766409105000
+  implements MigrationInterface
+{
   name = 'UpdateOrderDiscountFields1766409105000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -20,7 +22,9 @@ export class UpdateOrderDiscountFields1766409105000 implements MigrationInterfac
     );
 
     // Drop old discountAmount column
-    await queryRunner.query(`ALTER TABLE "orders" DROP COLUMN "discountAmount"`);
+    await queryRunner.query(
+      `ALTER TABLE "orders" DROP COLUMN "discountAmount"`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -35,8 +39,11 @@ export class UpdateOrderDiscountFields1766409105000 implements MigrationInterfac
     );
 
     // Drop new columns
-    await queryRunner.query(`ALTER TABLE "orders" DROP COLUMN "wastageDiscount"`);
-    await queryRunner.query(`ALTER TABLE "orders" DROP COLUMN "makingDiscount"`);
+    await queryRunner.query(
+      `ALTER TABLE "orders" DROP COLUMN "wastageDiscount"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "orders" DROP COLUMN "makingDiscount"`,
+    );
   }
 }
-

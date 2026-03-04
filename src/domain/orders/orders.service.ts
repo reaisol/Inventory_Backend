@@ -345,7 +345,6 @@ export class OrdersService {
 
       await queryRunner.commitTransaction();
 
-
       // Return order with relations
       return this.findOne(savedOrder.id);
     } catch (error) {
@@ -359,7 +358,9 @@ export class OrdersService {
   /**
    * Calculate order total without saving (for quote/preview)
    */
-  async calculate(createOrderDto: CreateOrderDto): Promise<CalculateOrderResponseDto> {
+  async calculate(
+    createOrderDto: CreateOrderDto,
+  ): Promise<CalculateOrderResponseDto> {
     // Validate customer if provided
     if (createOrderDto.customerId) {
       const customer = await this.customerRepository.findOne({
@@ -399,7 +400,9 @@ export class OrdersService {
 
       if (product.isBulkItem) {
         // Calculate sold weight for bulk items
-        soldWeight = Number(((product.weightPerItem || 0) * quantity).toFixed(3));
+        soldWeight = Number(
+          ((product.weightPerItem || 0) * quantity).toFixed(3),
+        );
 
         // Get current metal price
         const metalPrice = await this.getCurrentMetalPrice(

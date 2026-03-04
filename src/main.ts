@@ -16,7 +16,7 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   // enable cors - temporary permissive for debugging
   console.log('CORS_ORIGIN env:', process.env.CORS_ORIGIN);
-  
+
   app.enableCors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

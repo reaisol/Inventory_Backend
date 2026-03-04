@@ -2,7 +2,9 @@ import { IsString, IsNumber, IsOptional } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateDailySheetExpenseDto {
-  @ApiPropertyOptional({ description: 'ID (for updates, omit for new entries)' })
+  @ApiPropertyOptional({
+    description: 'ID (for updates, omit for new entries)',
+  })
   @IsOptional()
   @IsNumber()
   id?: number;
@@ -20,5 +22,3 @@ export class CreateDailySheetExpenseDto {
   @IsNumber()
   expenseId?: number;
 }
-
-

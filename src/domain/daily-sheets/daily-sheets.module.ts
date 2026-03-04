@@ -35,5 +35,3 @@ import { AuthenticationModule } from '@app/authentication';
   exports: [DailySheetsService],
 })
 export class DailySheetsModule {}
-
-

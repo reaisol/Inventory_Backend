@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationQueryDto } from '../../../shared/dto/pagination-query.dto';
-import { IsOptional, IsBoolean, IsDateString } from 'class-validator';
+import { IsOptional, IsDateString } from 'class-validator';
 
 export class DailySheetQueryPaginationDto extends PaginationQueryDto {
   @ApiPropertyOptional({
@@ -24,7 +24,6 @@ export class DailySheetQueryPaginationDto extends PaginationQueryDto {
     example: false,
   })
   @IsOptional()
-  @IsBoolean()
+  // @IsBoolean()
   isLocked?: boolean;
 }
-

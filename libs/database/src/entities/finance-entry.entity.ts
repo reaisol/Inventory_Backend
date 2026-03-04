@@ -40,4 +40,3 @@ export class FinanceEntry {
   @JoinColumn({ name: 'dailySheetId' })
   dailySheet: DailySheet;
 }
-

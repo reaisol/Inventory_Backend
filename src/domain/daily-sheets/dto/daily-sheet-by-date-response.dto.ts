@@ -87,7 +87,7 @@ export class TransactionLineItemDto {
   @ApiProperty()
   credit: number;
 
-  @Expose()
+  @Exclude()
   @ApiProperty()
   balance: number;
 }
@@ -96,11 +96,11 @@ export class TransactionLineItemDto {
 export class DailySheetByDateResponseDto {
   @Expose()
   @ApiProperty()
-  date: string; // DD-MM-YYYY
+  date: string;
 
   @Expose()
   @ApiProperty()
-  openingCash: number;
+  openingCash: string;
 
   @Expose()
   @ApiProperty()
@@ -112,7 +112,7 @@ export class DailySheetByDateResponseDto {
 
   @Expose()
   @ApiProperty()
-  closingCash: number;
+  closingCash: string;
 
   @Expose()
   @ApiProperty()

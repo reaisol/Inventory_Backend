@@ -2,7 +2,9 @@ import { IsOptional, IsString, IsNumber, IsDateString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateDailySheetTransactionDto {
-  @ApiPropertyOptional({ description: 'ID (for updates, omit for new entries)' })
+  @ApiPropertyOptional({
+    description: 'ID (for updates, omit for new entries)',
+  })
   @IsOptional()
   @IsNumber()
   id?: number;
@@ -65,7 +67,10 @@ export class CreateDailySheetTransactionDto {
   @IsNumber()
   makingCharges?: number;
 
-  @ApiPropertyOptional({ description: 'Old Gold weight (exchange)', default: 0 })
+  @ApiPropertyOptional({
+    description: 'Old Gold weight (exchange)',
+    default: 0,
+  })
   @IsOptional()
   @IsNumber()
   oldGoldWeight?: number;
@@ -75,7 +80,10 @@ export class CreateDailySheetTransactionDto {
   @IsNumber()
   oldGoldValue?: number;
 
-  @ApiPropertyOptional({ description: 'Old Silver weight (exchange)', default: 0 })
+  @ApiPropertyOptional({
+    description: 'Old Silver weight (exchange)',
+    default: 0,
+  })
   @IsOptional()
   @IsNumber()
   oldSilverWeight?: number;
@@ -109,5 +117,3 @@ export class CreateDailySheetTransactionDto {
   @IsNumber()
   orderId?: number;
 }
-
-

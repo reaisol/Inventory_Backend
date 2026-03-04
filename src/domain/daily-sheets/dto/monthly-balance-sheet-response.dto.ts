@@ -176,4 +176,3 @@ export class MonthlyBalanceSheetResponseDto {
   @Type(() => DailySheetListItemDto)
   dailySheets: DailySheetListItemDto[];
 }
-
