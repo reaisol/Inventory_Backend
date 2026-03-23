@@ -155,7 +155,7 @@ export class OrdersService {
           });
 
           orderItems.push(orderItem);
-          subtotal += priceCalculation.totalPrice;
+          subtotal += priceCalculation.basePrice + priceCalculation.stoneCost;
           wastageAmount += priceCalculation.wastageAmount;
           makingChargesAmount += priceCalculation.makingChargesAmount;
         } else {
@@ -182,7 +182,7 @@ export class OrdersService {
           });
 
           orderItems.push(orderItem);
-          subtotal += priceCalculation.totalPrice;
+          subtotal += priceCalculation.basePrice + priceCalculation.stoneCost;
           wastageAmount += priceCalculation.wastageAmount;
           makingChargesAmount += priceCalculation.makingChargesAmount;
 
@@ -446,7 +446,7 @@ export class OrdersService {
         stoneCost: priceCalculation.stoneCost,
       });
 
-      subtotal += priceCalculation.totalPrice;
+      subtotal += priceCalculation.basePrice + priceCalculation.stoneCost;
       wastageAmount += priceCalculation.wastageAmount;
       makingChargesAmount += priceCalculation.makingChargesAmount;
     }

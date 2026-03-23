@@ -75,6 +75,7 @@ async function seedData() {
       { name: '22K', code: '22K', purityPercentage: 91.6 },
       { name: '18K', code: '18K', purityPercentage: 75.0 },
       { name: '14K', code: '14K', purityPercentage: 58.5 },
+      { name: '9K', code: '9K', purityPercentage: 37.5 },
     ];
 
     for (const purity of goldPurities) {

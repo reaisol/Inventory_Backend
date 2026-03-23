@@ -30,8 +30,9 @@ import { plainToClass } from 'class-transformer';
 import {
   ReadMetalPolicyHandler,
   CreateMetalPricePolicyHandler,
+  DeleteMetalPricePolicyHandler,
 } from './handlers/metal-policy.handler';
-
+import { Delete } from '@nestjs/common';
 @ApiTags('Metals')
 @Controller('metals')
 @UseGuards(JwtAuthGuard, PoliciesGuard)
@@ -68,6 +69,23 @@ export class MetalsController {
     @Query('metalTypeId', ParseIntPipe) metalTypeId?: number,
   ) {
     return this.metalsService.findAllMetalPurities(metalTypeId);
+  }
+
+  @Post('purities')
+  @ApiOperation({ summary: 'Create a new metal purity' })
+  @CheckPolicies(new CreateMetalPricePolicyHandler())
+  async createMetalPurity(
+    @Body() body: { metalTypeId: number; name: string; code: string; purityPercentage: number; }
+  ) {
+    return this.metalsService.createMetalPurity(body);
+  }
+
+  @Delete('purities/:id')
+  @ApiOperation({ summary: 'Delete a metal purity' })
+  @CheckPolicies(new DeleteMetalPricePolicyHandler())
+  async deleteMetalPurity(@Param('id', ParseIntPipe) id: number) {
+    await this.metalsService.deleteMetalPurity(id);
+    return { message: 'Metal purity deleted successfully' };
   }
 
   @Get('purities/:id/price')
