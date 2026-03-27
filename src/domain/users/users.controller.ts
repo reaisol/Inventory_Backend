@@ -11,6 +11,8 @@ import {
   UseInterceptors,
   UseGuards,
   ParseIntPipe,
+  Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -159,7 +161,10 @@ export class UsersController {
   })
   @ApiResponse({ status: 404, description: 'User not found' })
   @CheckPolicies(new DeleteUserPolicyHandler())
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    if (req.user && req.user.id === id) {
+      throw new ForbiddenException('You cannot delete your own account');
+    }
     await this.usersService.remove(id);
     return { message: 'User deleted successfully' };
   }
