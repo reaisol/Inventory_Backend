@@ -10,3 +10,4 @@ export * from './settings';
 export * from './dashboard';
 export * from './expenses';
 export * from './daily-sheets';
+export * from './chatbot/chatbot.module';

@@ -26,12 +26,14 @@
     "migration:create": "npx ts-node -P ./tsconfig.json -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:create -d ./libs/database/src/typeorm.config.ts ./libs/database/src/migrations/migration",
     "migration:run": "npx ts-node -P ./tsconfig.json -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:run -d ./libs/database/src/typeorm.config.ts",
     "migration:revert": "npx ts-node -P ./tsconfig.json -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:revert -d ./libs/database/src/typeorm.config.ts",
-    "seed:data": "ts-node -r tsconfig-paths/register scripts/seed-initial-data.ts"
+    "seed:data": "ts-node -r tsconfig-paths/register scripts/seed-initial-data.ts",
+    "seed": "npm run seed:data"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.890.0",
     "@aws-sdk/s3-request-presigner": "^3.890.0",
     "@casl/ability": "^6.7.3",
+    "@google/generative-ai": "^0.24.1",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^10.0.0",
