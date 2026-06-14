@@ -11,7 +11,9 @@ export class ChatbotService {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
     if (apiKey) {
       this.genAI = new GoogleGenerativeAI(apiKey);
-      this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+      this.model = this.genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash-lite',
+      });
     }
   }
 
@@ -22,7 +24,9 @@ export class ChatbotService {
         return 'I am currently in maintenance mode (API key missing). Please contact the administrator.';
       }
       this.genAI = new GoogleGenerativeAI(apiKey);
-      this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+      this.model = this.genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash-lite',
+      });
     }
 
     try {
@@ -32,7 +36,9 @@ export class ChatbotService {
       return response.text();
     } catch (error) {
       console.error('Gemini API Error:', error);
-      throw new InternalServerErrorException('Failed to get response from AI assistant');
+      throw new InternalServerErrorException(
+        'Failed to get response from AI assistant',
+      );
     }
   }
 

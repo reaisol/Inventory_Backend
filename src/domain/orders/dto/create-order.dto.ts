@@ -60,6 +60,15 @@ export class CreateOrderDto {
   @Min(0)
   wastageDiscount?: number;
 
+  @ApiPropertyOptional({
+    description: 'Special discount applied to the final bill total',
+    example: 0,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  specialDiscount?: number;
+
   @ApiProperty({
     description: 'Payment method',
     enum: PaymentMethod,

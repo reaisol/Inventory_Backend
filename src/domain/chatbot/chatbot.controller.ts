@@ -1,9 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -22,7 +17,9 @@ export class ChatbotController {
   constructor(private readonly chatbotService: ChatbotService) {}
 
   @Post('ask')
-  @ApiOperation({ summary: 'Ask the AI assistant a question about the business' })
+  @ApiOperation({
+    summary: 'Ask the AI assistant a question about the business',
+  })
   @ApiResponse({
     status: 200,
     description: 'AI response retrieved successfully',
@@ -34,7 +31,10 @@ export class ChatbotController {
     },
   })
   async ask(@Body() askDto: AskQuestionDto): Promise<{ response: string }> {
-    const response = await this.chatbotService.ask(askDto.question, askDto.context);
+    const response = await this.chatbotService.ask(
+      askDto.question,
+      askDto.context,
+    );
     return { response };
   }
 }

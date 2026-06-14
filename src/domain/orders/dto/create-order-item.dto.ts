@@ -16,4 +16,13 @@ export class CreateOrderItemDto {
   @IsNumber()
   @Min(1)
   quantity?: number;
+
+  @ApiPropertyOptional({
+    description: 'Custom sold weight in grams (for bulk items). If provided, overrides the default weightPerItem × quantity calculation.',
+    example: 180.5,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0.001)
+  soldWeightGm?: number;
 }

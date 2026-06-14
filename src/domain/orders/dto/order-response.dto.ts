@@ -135,6 +135,10 @@ export class OrderResponseDto {
 
   @ApiProperty()
   @Expose()
+  specialDiscount: number;
+
+  @ApiProperty()
+  @Expose()
   totalAmount: number;
 
   @ApiProperty()

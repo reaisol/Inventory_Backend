@@ -89,27 +89,14 @@ export class ProductsService {
       }
     }
 
-    // Get default wastage and making charges from settings if not provided
-    let wastagePercentage = createProductDto.wastagePercentage;
-    let makingChargesPercentage = createProductDto.makingChargesPercentage;
+    // Default wastage and making charges to 0 if not provided
+    const wastagePercentage = createProductDto.wastagePercentage !== undefined && createProductDto.wastagePercentage !== null
+      ? createProductDto.wastagePercentage
+      : 0.0;
 
-    if (!wastagePercentage) {
-      const wastageSetting = await this.settingsRepository.findOne({
-        where: { key: 'DEFAULT_WASTAGE_PERCENTAGE' },
-      });
-      wastagePercentage = wastageSetting
-        ? parseFloat(wastageSetting.value)
-        : 5.0;
-    }
-
-    if (!makingChargesPercentage) {
-      const makingChargesSetting = await this.settingsRepository.findOne({
-        where: { key: 'DEFAULT_MAKING_CHARGES_PERCENTAGE' },
-      });
-      makingChargesPercentage = makingChargesSetting
-        ? parseFloat(makingChargesSetting.value)
-        : 15.0;
-    }
+    const makingChargesPercentage = createProductDto.makingChargesPercentage !== undefined && createProductDto.makingChargesPercentage !== null
+      ? createProductDto.makingChargesPercentage
+      : 0.0;
 
     // Generate product ID
     const sequence = await getNextProductSequence(

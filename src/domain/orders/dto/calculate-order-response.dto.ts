@@ -96,6 +96,10 @@ export class CalculateOrderResponseDto {
 
   @ApiProperty()
   @Expose()
+  specialDiscount: number;
+
+  @ApiProperty()
+  @Expose()
   exchangeCredit: number;
 
   @ApiProperty()

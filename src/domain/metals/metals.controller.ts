@@ -75,7 +75,13 @@ export class MetalsController {
   @ApiOperation({ summary: 'Create a new metal purity' })
   @CheckPolicies(new CreateMetalPricePolicyHandler())
   async createMetalPurity(
-    @Body() body: { metalTypeId: number; name: string; code: string; purityPercentage: number; }
+    @Body()
+    body: {
+      metalTypeId: number;
+      name: string;
+      code: string;
+      purityPercentage: number;
+    },
   ) {
     return this.metalsService.createMetalPurity(body);
   }

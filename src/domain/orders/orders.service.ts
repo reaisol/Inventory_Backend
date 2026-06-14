@@ -114,10 +114,22 @@ export class OrdersService {
             );
           }
 
-          // Calculate sold weight for bulk items
-          const soldWeight = Number(
-            ((product.weightPerItem || 0) * quantity).toFixed(3),
-          );
+          // Use custom sold weight if provided, otherwise calculate from weightPerItem × quantity
+          let soldWeight: number;
+          if (orderItemDto.soldWeightGm && orderItemDto.soldWeightGm > 0) {
+            soldWeight = Number(orderItemDto.soldWeightGm.toFixed(3));
+          } else {
+            soldWeight = Number(
+              ((product.weightPerItem || 0) * quantity).toFixed(3),
+            );
+          }
+
+          // Validate sold weight doesn't exceed available weight
+          if (soldWeight > product.grossWeightGm) {
+            throw new BadRequestException(
+              `Sold weight (${soldWeight}g) exceeds available weight (${product.grossWeightGm}g) for product ${product.name}`,
+            );
+          }
 
           // Get current metal price
           const metalPrice = await this.getCurrentMetalPrice(
@@ -264,6 +276,7 @@ export class OrdersService {
       // Calculate discounts (apply only to making charges and wastage)
       const makingDiscount = createOrderDto.makingDiscount || 0;
       const wastageDiscount = createOrderDto.wastageDiscount || 0;
+      const specialDiscount = createOrderDto.specialDiscount || 0;
 
       // Ensure discounts don't exceed the respective amounts
       const finalMakingDiscount = Math.min(makingDiscount, makingChargesAmount);
@@ -275,12 +288,13 @@ export class OrdersService {
       const discountedWastageAmount = wastageAmount - finalWastageDiscount;
 
       // Calculate final total
-      // Total = Subtotal + (Wastage - Wastage Discount) + (Making Charges - Making Discount) - Exchange Credit
+      // Total = Subtotal + (Wastage - Wastage Discount) + (Making Charges - Making Discount) - Exchange Credit - Special Discount
       const totalAmount =
         subtotal +
         discountedWastageAmount +
         discountedMakingChargesAmount -
-        exchangeCredit;
+        exchangeCredit -
+        specialDiscount;
 
       // Generate order number
       const orderNumber = await generateOrderNumber(
@@ -299,6 +313,7 @@ export class OrdersService {
         makingChargesAmount,
         makingDiscount: finalMakingDiscount,
         wastageDiscount: finalWastageDiscount,
+        specialDiscount,
         totalAmount: Math.max(0, totalAmount), // Ensure non-negative
         paymentMethod: createOrderDto.paymentMethod,
         status: OrderStatus.COMPLETED,
@@ -399,10 +414,21 @@ export class OrdersService {
       let soldWeight = product.grossWeightGm;
 
       if (product.isBulkItem) {
-        // Calculate sold weight for bulk items
-        soldWeight = Number(
-          ((product.weightPerItem || 0) * quantity).toFixed(3),
-        );
+        // Use custom sold weight if provided, otherwise calculate from weightPerItem × quantity
+        if (orderItemDto.soldWeightGm && orderItemDto.soldWeightGm > 0) {
+          soldWeight = Number(orderItemDto.soldWeightGm.toFixed(3));
+        } else {
+          soldWeight = Number(
+            ((product.weightPerItem || 0) * quantity).toFixed(3),
+          );
+        }
+
+        // Validate sold weight doesn't exceed available weight
+        if (soldWeight > product.grossWeightGm) {
+          throw new BadRequestException(
+            `Sold weight (${soldWeight}g) exceeds available weight (${product.grossWeightGm}g) for product ${product.name}`,
+          );
+        }
 
         // Get current metal price
         const metalPrice = await this.getCurrentMetalPrice(
@@ -522,6 +548,7 @@ export class OrdersService {
     // Calculate discounts (apply only to making charges and wastage)
     const makingDiscount = createOrderDto.makingDiscount || 0;
     const wastageDiscount = createOrderDto.wastageDiscount || 0;
+    const specialDiscount = createOrderDto.specialDiscount || 0;
 
     // Ensure discounts don't exceed the respective amounts
     const finalMakingDiscount = Math.min(makingDiscount, makingChargesAmount);
@@ -537,7 +564,8 @@ export class OrdersService {
       subtotal +
       discountedWastageAmount +
       discountedMakingChargesAmount -
-      exchangeCredit;
+      exchangeCredit -
+      specialDiscount;
 
     return {
       subtotal: Number(subtotal.toFixed(2)),
@@ -549,6 +577,7 @@ export class OrdersService {
       ),
       wastageDiscount: finalWastageDiscount,
       discountedWastageAmount: Number(discountedWastageAmount.toFixed(2)),
+      specialDiscount: Number(specialDiscount.toFixed(2)),
       exchangeCredit: Number(exchangeCredit.toFixed(2)),
       totalAmount: Number(Math.max(0, totalAmount).toFixed(2)),
       items: itemCalculations,

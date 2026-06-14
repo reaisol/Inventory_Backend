@@ -58,6 +58,9 @@ export class Order {
   @Column('decimal', { precision: 10, scale: 2, default: 0 })
   wastageDiscount: number; // Discount applied only to wastage
 
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
+  specialDiscount: number; // Flat discount applied to the final bill total
+
   @Column('decimal', { precision: 10, scale: 2 })
   totalAmount: number;
 

@@ -14,4 +14,4 @@ import { AuthenticationModule } from '@app/authentication';
   providers: [MetalsService],
   exports: [MetalsService],
 })
-export class MetalsModule { }
+export class MetalsModule {}

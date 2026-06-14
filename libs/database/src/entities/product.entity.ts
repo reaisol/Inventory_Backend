@@ -59,10 +59,10 @@ export class Product {
   @Column('decimal', { precision: 10, scale: 2, nullable: true, default: 0 })
   stoneCost: number;
 
-  @Column('decimal', { precision: 5, scale: 2, default: 5.0 })
+  @Column('decimal', { precision: 5, scale: 2, default: 0.0 })
   wastagePercentage: number;
 
-  @Column('decimal', { precision: 5, scale: 2, default: 15.0 })
+  @Column('decimal', { precision: 5, scale: 2, default: 0.0 })
   makingChargesPercentage: number;
 
   @Column({ nullable: true, unique: true })
