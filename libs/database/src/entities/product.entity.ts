@@ -30,7 +30,7 @@ export class Product {
   id: number;
 
   @Column({ unique: true })
-  productId: string; // GLD-BAN-2025-0001
+  productId: string; // New format: GL-26-01 / SL-26-01
 
   @Column()
   name: string;
