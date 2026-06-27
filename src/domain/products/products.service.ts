@@ -94,9 +94,9 @@ export class ProductsService {
       ? createProductDto.wastagePercentage
       : 0.0;
 
-    const makingChargesPercentage = createProductDto.makingChargesPercentage !== undefined && createProductDto.makingChargesPercentage !== null
-      ? createProductDto.makingChargesPercentage
-      : 0.0;
+    const makingChargesAmount = createProductDto.makingChargesAmount !== undefined && createProductDto.makingChargesAmount !== null
+      ? createProductDto.makingChargesAmount
+      : 0;
 
     // Generate product ID
     const sequence = await getNextProductSequence(
@@ -128,7 +128,7 @@ export class ProductsService {
       ...createProductDto,
       productId,
       wastagePercentage,
-      makingChargesPercentage,
+      makingChargesAmount,
       status: ProductStatus.IN_STOCK,
       isBulkItem: createProductDto.isBulkItem || false,
     });

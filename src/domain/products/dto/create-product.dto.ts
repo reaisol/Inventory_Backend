@@ -83,14 +83,14 @@ export class CreateProductDto {
   wastagePercentage?: number;
 
   @ApiPropertyOptional({
-    description: 'Making charges percentage',
-    example: 15.0,
-    default: 15.0,
+    description: 'Flat making charges in INR',
+    example: 500,
+    default: 0,
   })
   @IsOptional()
   @IsNumber()
   @Min(0)
-  makingChargesPercentage?: number;
+  makingChargesAmount?: number;
 
   @ApiPropertyOptional({
     description: 'Barcode',

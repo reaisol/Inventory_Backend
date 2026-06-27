@@ -62,8 +62,8 @@ export class Product {
   @Column('decimal', { precision: 5, scale: 2, default: 0.0 })
   wastagePercentage: number;
 
-  @Column('decimal', { precision: 5, scale: 2, default: 0.0 })
-  makingChargesPercentage: number;
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
+  makingChargesAmount: number; // Flat making charges in INR (₹)
 
   @Column({ nullable: true, unique: true })
   barcode: string;

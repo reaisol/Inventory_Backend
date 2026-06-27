@@ -14,16 +14,16 @@ VALUES (1, 1, 99.9, NOW(), NOW()), (2, 2, 99.9, NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- Create products for jewelry (gold)
-INSERT INTO products (id, "categoryId", name, "metalTypeId", "metalPurityId", "grossWeightGm", "makingChargesPercentage", created_at, updated_at) 
+INSERT INTO products (id, "categoryId", name, "metalTypeId", "metalPurityId", "grossWeightGm", "makingChargesAmount", created_at, updated_at) 
 VALUES 
-(1, 1, 'Gold Ring', 1, 1, 10.5, 5, NOW(), NOW()),
-(2, 1, 'Gold Necklace', 1, 1, 8.25, 5, NOW(), NOW())
+(1, 1, 'Gold Ring', 1, 1, 10.5, 500, NOW(), NOW()),
+(2, 1, 'Gold Necklace', 1, 1, 8.25, 500, NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- Create products for bullion (silver)
-INSERT INTO products (id, "categoryId", name, "metalTypeId", "metalPurityId", "grossWeightGm", "makingChargesPercentage", created_at, updated_at) 
+INSERT INTO products (id, "categoryId", name, "metalTypeId", "metalPurityId", "grossWeightGm", "makingChargesAmount", created_at, updated_at) 
 VALUES 
-(3, 2, 'Silver Ingot', 2, 2, 25.5, 2, NOW(), NOW())
+(3, 2, 'Silver Ingot', 2, 2, 25.5, 200, NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- Create orders for 23-02-2026

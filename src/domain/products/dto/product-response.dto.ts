@@ -90,9 +90,9 @@ export class ProductResponseDto {
   @Expose()
   wastagePercentage: number;
 
-  @ApiProperty({ description: 'Making charges percentage', example: 15.0 })
+  @ApiProperty({ description: 'Flat making charges in INR', example: 500 })
   @Expose()
-  makingChargesPercentage: number;
+  makingChargesAmount: number;
 
   @ApiProperty({ description: 'Barcode', example: '1234567890123' })
   @Expose()
