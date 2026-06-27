@@ -32,13 +32,13 @@ jewelry_id AS (SELECT id FROM categories WHERE code = 'JEWELRY' LIMIT 1),
 bullion_id AS (SELECT id FROM categories WHERE code = 'BULLION' LIMIT 1),
 gold_purity_id AS (SELECT id FROM metal_purities WHERE "metalTypeId" = (SELECT id FROM metal_types WHERE code = 'GOLD') LIMIT 1),
 silver_purity_id AS (SELECT id FROM metal_purities WHERE "metalTypeId" = (SELECT id FROM metal_types WHERE code = 'SILVER') LIMIT 1)
-INSERT INTO products (name, "categoryId", "metalTypeId", "metalPurityId", "grossWeightGm", "makingChargesPercentage")
+INSERT INTO products (name, "categoryId", "metalTypeId", "metalPurityId", "grossWeightGm", "makingChargesAmount")
 SELECT * FROM (
-  SELECT 'Gold Ring'::varchar, jewelry_id.id, gold_id.id, gold_purity_id.id, 10.5::numeric, 5::numeric FROM jewelry_id, gold_id, gold_purity_id
+  SELECT 'Gold Ring'::varchar, jewelry_id.id, gold_id.id, gold_purity_id.id, 10.5::numeric, 500::numeric FROM jewelry_id, gold_id, gold_purity_id
   UNION ALL
-  SELECT 'Gold Necklace'::varchar, jewelry_id.id, gold_id.id, gold_purity_id.id, 8.25::numeric, 5::numeric FROM jewelry_id, gold_id, gold_purity_id
+  SELECT 'Gold Necklace'::varchar, jewelry_id.id, gold_id.id, gold_purity_id.id, 8.25::numeric, 500::numeric FROM jewelry_id, gold_id, gold_purity_id
   UNION ALL
-  SELECT 'Silver Ingot'::varchar, bullion_id.id, silver_id.id, silver_purity_id.id, 25.5::numeric, 2::numeric FROM bullion_id, silver_id, silver_purity_id
+  SELECT 'Silver Ingot'::varchar, bullion_id.id, silver_id.id, silver_purity_id.id, 25.5::numeric, 200::numeric FROM bullion_id, silver_id, silver_purity_id
 ) AS new_products
 ON CONFLICT DO NOTHING;
 

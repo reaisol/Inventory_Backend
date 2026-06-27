@@ -867,8 +867,7 @@ export class DailySheetsService {
             },
             oneGramRate: Number(itemRatePerGram),
             makingChargesTotal:
-              Number(product?.makingChargesPercentage || 0) *
-              (grandTotal / 100),
+              Number(product?.makingChargesAmount || 0),
             oldGoldWeight,
             oldGoldValue,
             oldSilverWeight,

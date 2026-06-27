@@ -540,8 +540,7 @@ export class DashboardService {
       const basePrice = weight * pricePerGram;
       const wastage =
         basePrice * (Number(product.wastagePercentage || 0) / 100);
-      const makingCharges =
-        basePrice * (Number(product.makingChargesPercentage || 0) / 100);
+      const makingCharges = product.makingChargesAmount ? Number(product.makingChargesAmount) : 0;
       const stoneCost = product.stoneCost ? Number(product.stoneCost) : 0;
       const productValue = basePrice + wastage + makingCharges + stoneCost;
       totalInventoryValue += productValue;

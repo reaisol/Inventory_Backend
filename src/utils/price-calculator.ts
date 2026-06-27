@@ -21,9 +21,8 @@ export function calculateProductPrice(
   // Wastage amount = base price * wastage percentage
   const wastageAmount = basePrice * (product.wastagePercentage / 100);
 
-  // Making charges = base price * making charges percentage
-  const makingChargesAmount =
-    basePrice * (product.makingChargesPercentage / 100);
+  // Making charges = flat amount in rupees stored on the product
+  const makingChargesAmount = Number(product.makingChargesAmount) || 0;
 
   // Handle null, undefined, or string values from database
   let stoneCost = 0;

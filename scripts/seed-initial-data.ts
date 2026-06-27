@@ -153,9 +153,9 @@ async function seedData() {
         description: 'Default wastage percentage for products',
       },
       {
-        key: 'DEFAULT_MAKING_CHARGES_PERCENTAGE',
-        value: '15.0',
-        description: 'Default making charges percentage for products',
+        key: 'DEFAULT_MAKING_CHARGES_AMOUNT',
+        value: '0',
+        description: 'Default making charges amount for products',
       },
     ];
 

@@ -1,9 +1,9 @@
 -- Insert products (using existing category and metal purity IDs from seed data)
-INSERT INTO products (name, "categoryId", "metalTypeId", "metalPurityId", "grossWeightGm", "makingChargesPercentage")
+INSERT INTO products (name, "categoryId", "metalTypeId", "metalPurityId", "grossWeightGm", "makingChargesAmount")
 VALUES 
-('Gold Ring', 1, 1, 1, 10.5, 5),
-('Gold Necklace', 1, 1, 1, 8.25, 5),
-('Silver Ingot', 2, 2, 1, 25.5, 2)
+('Gold Ring', 1, 1, 1, 10.5, 500),
+('Gold Necklace', 1, 1, 1, 8.25, 500),
+('Silver Ingot', 2, 2, 1, 25.5, 200)
 ON CONFLICT DO NOTHING;
 
 -- Insert orders for 23-02-2026

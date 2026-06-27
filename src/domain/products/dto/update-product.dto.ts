@@ -53,13 +53,13 @@ export class UpdateProductDto {
   wastagePercentage?: number;
 
   @ApiPropertyOptional({
-    description: 'Making charges percentage',
-    example: 15.0,
+    description: 'Flat making charges in INR',
+    example: 500,
   })
   @IsOptional()
   @IsNumber()
   @Min(0)
-  makingChargesPercentage?: number;
+  makingChargesAmount?: number;
 
   @ApiPropertyOptional({ description: 'Barcode', example: '1234567890123' })
   @IsOptional()
