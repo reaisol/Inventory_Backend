@@ -3,7 +3,7 @@ import { Expose } from 'class-transformer';
 
 export class PriceCalculationResponseDto {
   @ApiProperty({
-    description: 'Base price (gross weight × price per gram)',
+    description: 'Base price (net weight × price per gram)',
     example: 72000.0,
   })
   @Expose()
