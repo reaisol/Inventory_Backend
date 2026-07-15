@@ -140,6 +140,7 @@ export class OrdersService {
           const tempProduct = {
             ...product,
             grossWeightGm: soldWeight,
+            stoneWeightGm: 0,
           };
 
           // Calculate price for sold quantity
@@ -439,6 +440,7 @@ export class OrdersService {
         const tempProduct = {
           ...product,
           grossWeightGm: soldWeight,
+          stoneWeightGm: 0,
         };
 
         // Calculate price for sold quantity

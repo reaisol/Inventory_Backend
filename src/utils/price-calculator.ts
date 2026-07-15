@@ -15,8 +15,11 @@ export function calculateProductPrice(
   product: Product,
   metalPrice: MetalPrice,
 ): PriceCalculationResult {
-  // Base price = gross weight * price per gram
-  const basePrice = product.grossWeightGm * metalPrice.pricePerGram;
+  // Base price = net weight * price per gram
+  const grossWeight = Number(product.grossWeightGm) || 0;
+  const stoneWeight = Number(product.stoneWeightGm) || 0;
+  const netWeight = Math.max(0, grossWeight - stoneWeight);
+  const basePrice = netWeight * metalPrice.pricePerGram;
 
   // Wastage amount = base price * wastage percentage
   const wastageAmount = basePrice * (product.wastagePercentage / 100);
