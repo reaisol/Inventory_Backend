@@ -22,19 +22,23 @@ export class CustomersService {
   ) {}
 
   async create(createCustomerDto: CreateCustomerDto): Promise<Customer> {
+    const email = createCustomerDto.email?.trim() || null;
     // Check email uniqueness if provided
-    if (createCustomerDto.email) {
+    if (email) {
       const existing = await this.customerRepository.findOne({
-        where: { email: createCustomerDto.email },
+        where: { email },
       });
       if (existing) {
         throw new ConflictException(
-          `Customer with email ${createCustomerDto.email} already exists`,
+          `Customer with email ${email} already exists`,
         );
       }
     }
 
-    const customer = this.customerRepository.create(createCustomerDto);
+    const customer = this.customerRepository.create({
+      ...createCustomerDto,
+      email,
+    });
     return this.customerRepository.save(customer);
   }
 
@@ -87,19 +91,27 @@ export class CustomersService {
   ): Promise<Customer> {
     const customer = await this.findOne(id);
 
+    const email =
+      updateCustomerDto.email !== undefined
+        ? updateCustomerDto.email?.trim() || null
+        : undefined;
+
     // Check email uniqueness if updating
-    if (updateCustomerDto.email && updateCustomerDto.email !== customer.email) {
+    if (email && email !== customer.email) {
       const existing = await this.customerRepository.findOne({
-        where: { email: updateCustomerDto.email },
+        where: { email },
       });
       if (existing) {
         throw new ConflictException(
-          `Customer with email ${updateCustomerDto.email} already exists`,
+          `Customer with email ${email} already exists`,
         );
       }
     }
 
-    Object.assign(customer, updateCustomerDto);
+    Object.assign(customer, {
+      ...updateCustomerDto,
+      ...(email !== undefined ? { email } : {}),
+    });
     return this.customerRepository.save(customer);
   }
 

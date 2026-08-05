@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsOptional, IsString, IsEmail } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateCustomerDto {
@@ -12,6 +13,7 @@ export class CreateCustomerDto {
     example: 'john.doe@example.com',
   })
   @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' && value.trim() ? value.trim() : undefined))
   @IsEmail()
   email?: string;
 
