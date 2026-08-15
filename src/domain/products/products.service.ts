@@ -260,6 +260,10 @@ export class ProductsService {
   ): Promise<Product> {
     const product = await this.findOne(id);
 
+    const oldRemaining = product.remainingQuantity ?? 0;
+    const oldTotal = product.totalQuantity ?? 0;
+    const oldStatus = product.status;
+
     // Check barcode uniqueness if updating
     if (
       updateProductDto.barcode &&
@@ -286,42 +290,36 @@ export class ProductsService {
       product.isBulkItem = updateProductDto.isBulkItem;
     }
 
-    if (updateProductDto.totalQuantity !== undefined) {
-      // Only allow updating totalQuantity if product hasn't been sold yet
-      if (product.status === ProductStatus.SOLD) {
-        throw new BadRequestException(
-          'Cannot update totalQuantity for sold products',
-        );
-      }
-      const oldTotalQuantity = product.totalQuantity || 0;
-      product.totalQuantity = updateProductDto.totalQuantity;
+    Object.assign(product, updateProductDto);
 
-      // If increasing totalQuantity, adjust remainingQuantity proportionally
-      if (oldTotalQuantity > 0 && product.remainingQuantity !== null) {
-        const ratio = updateProductDto.totalQuantity / oldTotalQuantity;
-        product.remainingQuantity = Math.floor(
-          (product.remainingQuantity || 0) * ratio,
-        );
-      } else {
-        // If setting totalQuantity for first time, set remainingQuantity
-        product.remainingQuantity = updateProductDto.totalQuantity;
-      }
-    }
-
-    // Recalculate bulk item fields if weight or totalQuantity changed
     if (
       product.isBulkItem &&
-      product.totalQuantity &&
-      (updateProductDto.grossWeightGm !== undefined ||
-        updateProductDto.totalQuantity !== undefined)
+      (updateProductDto.totalQuantity !== undefined ||
+        updateProductDto.grossWeightGm !== undefined)
     ) {
-      // Recalculate weight per item
+      const enteredCount =
+        updateProductDto.totalQuantity !== undefined
+          ? updateProductDto.totalQuantity
+          : oldRemaining;
+
+      if (enteredCount < 1) {
+        throw new BadRequestException(
+          'Pieces in stock must be at least 1 for a bulk item',
+        );
+      }
+
+      product.remainingQuantity = enteredCount;
+      const soldSoFar = Math.max(0, oldTotal - oldRemaining);
+      product.totalQuantity = enteredCount + soldSoFar;
       product.weightPerItem = Number(
-        (product.grossWeightGm / product.totalQuantity).toFixed(3),
+        (product.grossWeightGm / enteredCount).toFixed(3),
       );
+
+      if (oldStatus === ProductStatus.SOLD && enteredCount > 0) {
+        product.status = ProductStatus.IN_STOCK;
+      }
     }
 
-    Object.assign(product, updateProductDto);
     return this.productRepository.save(product);
   }
 
