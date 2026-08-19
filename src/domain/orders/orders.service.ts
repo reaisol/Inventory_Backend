@@ -165,6 +165,7 @@ export class OrdersService {
             unitPrice: priceCalculation.totalPrice,
             totalPrice: priceCalculation.totalPrice,
             quantity: quantity,
+            soldWeightGm: soldWeight,
           });
 
           orderItems.push(orderItem);
@@ -192,6 +193,7 @@ export class OrdersService {
             unitPrice: priceCalculation.totalPrice,
             totalPrice: priceCalculation.totalPrice,
             quantity: 1,
+            soldWeightGm: product.grossWeightGm,
           });
 
           orderItems.push(orderItem);
