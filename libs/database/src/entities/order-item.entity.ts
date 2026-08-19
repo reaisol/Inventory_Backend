@@ -33,6 +33,9 @@ export class OrderItem {
   @Column({ default: 1 })
   quantity: number; // Number of items sold (1 for regular, 1-N for bulk items)
 
+  @Column('decimal', { precision: 10, scale: 3, nullable: true })
+  soldWeightGm: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

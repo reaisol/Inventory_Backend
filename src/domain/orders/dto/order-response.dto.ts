@@ -54,6 +54,9 @@ class OrderItemDto {
     example: 1,
   })
   quantity: number;
+
+  @ApiProperty({ nullable: true })
+  soldWeightGm?: number;
 }
 
 class ExchangeDto {
