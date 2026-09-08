@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { JwtService } from '@nestjs/jwt';
 import { AuthenticationService } from './authentication.service';
 
 describe('AuthenticationService', () => {
@@ -6,7 +7,13 @@ describe('AuthenticationService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthenticationService],
+      providers: [
+        AuthenticationService,
+        {
+          provide: JwtService,
+          useValue: { sign: jest.fn(), verify: jest.fn() },
+        },
+      ],
     }).compile();
 
     service = module.get<AuthenticationService>(AuthenticationService);

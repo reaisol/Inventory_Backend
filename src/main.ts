@@ -2,11 +2,18 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import * as dotenv from 'dotenv';
-dotenv.config();
+import helmet from 'helmet';
+import { getAllowedCorsOrigins, isSwaggerEnabled } from './config/environment';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableShutdownHooks();
+  app.use(
+    helmet({
+      contentSecurityPolicy:
+        process.env.NODE_ENV === 'production' ? undefined : false,
+    }),
+  );
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -14,43 +21,44 @@ async function bootstrap() {
     }),
   );
   const port = process.env.PORT || 3000;
-  // enable cors - temporary permissive for debugging
-  console.log('CORS_ORIGIN env:', process.env.CORS_ORIGIN);
 
   app.enableCors({
-    origin: '*',
+    origin: getAllowedCorsOrigins(process.env),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: false,
   });
 
-  // Swagger setup
-  const config = new DocumentBuilder()
-    .setTitle('Jewellery Inventory API')
-    .setDescription(
-      'API documentation for Jewellery Inventory Management System',
-    )
-    .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
-      },
-      'JWT-auth',
-    )
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  if (isSwaggerEnabled(process.env)) {
+    const config = new DocumentBuilder()
+      .setTitle('Jewellery Inventory API')
+      .setDescription(
+        'API documentation for Jewellery Inventory Management System',
+      )
+      .setVersion('1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'JWT',
+          description: 'Enter JWT token',
+          in: 'header',
+        },
+        'JWT-auth',
+      )
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, document);
+  }
 
   await app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
-    console.log(
-      `Swagger documentation available at http://localhost:${port}/api`,
-    );
+    if (isSwaggerEnabled(process.env)) {
+      console.log(
+        `Swagger documentation available at http://localhost:${port}/api`,
+      );
+    }
   });
 }
 bootstrap();

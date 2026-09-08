@@ -11,6 +11,7 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { Public } from '@app/authentication';
+import { Throttle } from '@nestjs/throttler';
 import { plainToClass } from 'class-transformer';
 
 @ApiTags('Authentication')
@@ -20,6 +21,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @ApiOperation({ summary: 'User login' })
   @ApiBody({ type: LoginDto })

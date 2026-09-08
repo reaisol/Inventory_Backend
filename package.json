@@ -41,6 +41,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/swagger": "^7.4.2",
+    "@nestjs/throttler": "^5.2.0",
     "@nestjs/typeorm": "^11.0.0",
     "@types/aws-lambda": "^8.10.152",
     "@types/pg": "^8.20.0",
@@ -53,6 +54,7 @@
     "express": "^5.1.0",
     "file-type": "^16.5.4",
     "firebase-admin": "^12.7.0",
+    "helmet": "^8.3.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.20.0",
@@ -112,7 +114,11 @@
       "<rootDir>/src/",
       "<rootDir>/libs/"
     ],
+    "setupFiles": [
+      "<rootDir>/test/jest.setup.ts"
+    ],
     "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/src/$1",
       "^@app/database(|/.*)$": "<rootDir>/libs/database/src/$1",
       "^@app/authentication(|/.*)$": "<rootDir>/libs/authentication/src/$1",
       "^@app/files(|/.*)$": "<rootDir>/libs/files/src/$1"

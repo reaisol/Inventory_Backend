@@ -10,6 +10,7 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
+  "setupFiles": ["<rootDir>/jest.setup.ts"],
   "moduleNameMapper": {
     "@app/database/(.*)": "<rootDir>/../libs/database/src/$1",
     "@app/database": "<rootDir>/../libs/database/src",
