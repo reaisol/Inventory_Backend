@@ -14,12 +14,6 @@ const productionEnvironment = {
   DB_SSL: 'true',
   JWT_PRIVATE_KEY: 'private-key',
   JWT_PUBLIC_KEY: 'public-key',
-  S3_AWS_ACCESS_KEY_ID: 'access-key',
-  S3_AWS_SECRET_ACCESS_KEY: 'secret-key',
-  S3_AWS_BUCKET_REGION: 'region',
-  S3_AWS_API_URL: 'https://storage.example.test',
-  S3_AWS_PRIVATE_BUCKET_NAME: 'private-bucket',
-  AWS_S3_BUCKET_PUBLIC_NAME: 'public-bucket',
   CORS_ORIGIN: 'https://app.example.test',
 };
 

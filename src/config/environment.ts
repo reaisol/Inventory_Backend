@@ -9,12 +9,6 @@ const requiredProductionVariables = [
   'DB_SSL',
   'JWT_PRIVATE_KEY',
   'JWT_PUBLIC_KEY',
-  'S3_AWS_ACCESS_KEY_ID',
-  'S3_AWS_SECRET_ACCESS_KEY',
-  'S3_AWS_BUCKET_REGION',
-  'S3_AWS_API_URL',
-  'S3_AWS_PRIVATE_BUCKET_NAME',
-  'AWS_S3_BUCKET_PUBLIC_NAME',
   'CORS_ORIGIN',
 ] as const;
 
