@@ -1,0 +1,35 @@
+# Dependencies and generated output
+node_modules
+dist
+coverage
+*.tsbuildinfo
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Version control and editor files
+.git
+.github
+.idea
+.vscode
+.DS_Store
+
+# Logs and local tooling output
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+.serverless
+
+# Files not required to build or run the API
+README.md
+postman_collection.json
+response.json
+response_with_data.json
+token.txt
+*.sql
+test

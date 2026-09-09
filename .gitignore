@@ -16,7 +16,6 @@ lerna-debug.log*
 .env
 .env.local
 .env.prod
-.dockerignore
 .docker-compose.yml
 
 # OS
