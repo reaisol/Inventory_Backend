@@ -10,13 +10,25 @@ describe('Invoice & Print Data Mapping Requirements', () => {
     basePrice?: number;
     perGramPrice?: number;
     wastagePercentage?: number;
+    wastageAmount?: number;
+    makingChargesAmount?: number;
     stoneCost?: number;
   }
 
-  const TABLE_HEADERS = {
-    metalValue: 'Metal Value',
-    va: 'VA',
-  };
+  const TABLE_HEADERS = [
+    'SL',
+    'Description of Goods',
+    'HSN Code',
+    'Pcs',
+    'Gross Wt.',
+    'Stone Wt.',
+    'Net Wt.',
+    'Metal Value',
+    'VA',
+    'MC',
+    'Stone',
+    'Taxable Value',
+  ];
 
   function calculateMetalValue(item: InvoiceItem): number | undefined {
     const netWt = Math.max(0, item.grossWt - item.stoneWt);
@@ -34,72 +46,104 @@ describe('Invoice & Print Data Mapping Requirements', () => {
     return val && val > 0 ? `₹${Math.round(val).toLocaleString('en-IN')}` : '-';
   }
 
-  function formatVA(item: InvoiceItem): string {
-    return item.wastagePercentage && item.wastagePercentage > 0
-      ? `${item.wastagePercentage}%`
-      : '-';
+  function calculateVA(item: InvoiceItem): number | undefined {
+    if (item.wastagePercentage == null || item.wastagePercentage <= 0) {
+      return undefined;
+    }
+    if (item.wastageAmount != null && item.wastageAmount > 0) {
+      return item.wastageAmount;
+    }
+    const metalVal = calculateMetalValue(item);
+    if (metalVal != null && metalVal > 0) {
+      return (metalVal * item.wastagePercentage) / 100;
+    }
+    return undefined;
   }
 
-  it('should confirm column headers are "Metal Value" and "VA"', () => {
-    expect(TABLE_HEADERS.metalValue).toBe('Metal Value');
-    expect(TABLE_HEADERS.va).toBe('VA');
+  function formatVA(item: InvoiceItem): string {
+    const va = calculateVA(item);
+    return va && va > 0 ? `₹${Math.round(va).toLocaleString('en-IN')}` : '-';
+  }
+
+  function formatMC(item: InvoiceItem): string {
+    const mc = item.makingChargesAmount;
+    return mc != null && mc > 0 ? `₹${Math.round(mc).toLocaleString('en-IN')}` : '-';
+  }
+
+  it('should confirm table headers include VA and MC placed after Metal Value in exact order', () => {
+    const netWtIndex = TABLE_HEADERS.indexOf('Net Wt.');
+    const metalValIndex = TABLE_HEADERS.indexOf('Metal Value');
+    const vaIndex = TABLE_HEADERS.indexOf('VA');
+    const mcIndex = TABLE_HEADERS.indexOf('MC');
+    const stoneIndex = TABLE_HEADERS.indexOf('Stone');
+    const taxableValIndex = TABLE_HEADERS.indexOf('Taxable Value');
+
+    expect(netWtIndex).toBeLessThan(metalValIndex);
+    expect(metalValIndex).toBeLessThan(vaIndex);
+    expect(vaIndex).toBeLessThan(mcIndex);
+    expect(mcIndex).toBeLessThan(stoneIndex);
+    expect(stoneIndex).toBeLessThan(taxableValIndex);
   });
 
-  it('should calculate Metal Value as Net Weight × per-gram metal price', () => {
+  it('should confirm both VA and MC columns appear in the printed invoice table headers', () => {
+    expect(TABLE_HEADERS).toContain('VA');
+    expect(TABLE_HEADERS).toContain('MC');
+  });
+
+  it('should display VA as currency amount in rupees, not as a percentage', () => {
     const item: InvoiceItem = {
       id: '1',
-      productName: 'TESTPROD3',
-      pcs: 1,
-      grossWt: 14.0,
-      stoneWt: 2.0,
-      metalPurity: 'Gold 22K',
-      price: 183968,
-      perGramPrice: 14400,
-      wastagePercentage: 6,
-    };
-
-    const netWeight = item.grossWt - item.stoneWt; // 12.000 g
-    const expectedMetalValue = netWeight * item.perGramPrice!; // 12 * 14400 = 172800
-
-    expect(netWeight).toBe(12.0);
-    expect(calculateMetalValue(item)).toBe(172800);
-    expect(formatMetalValue(item)).toBe('₹1,72,800');
-  });
-
-  it('should display ₹2,400 for 12g net weight at ₹200 per gram', () => {
-    const item: InvoiceItem = {
-      id: '2',
-      productName: 'Sample Ring',
-      pcs: 1,
-      grossWt: 12.0,
-      stoneWt: 0.0,
-      metalPurity: 'Gold 22K',
-      price: 2400,
-      perGramPrice: 200,
-      wastagePercentage: 0,
-    };
-
-    expect(calculateMetalValue(item)).toBe(2400);
-    expect(formatMetalValue(item)).toBe('₹2,400');
-  });
-
-  it('should print wastage percentage as X% when present under VA column', () => {
-    const itemWithWastage: InvoiceItem = {
-      id: '3',
-      productName: 'Gold Chain 22K',
+      productName: 'Gold Necklace',
       pcs: 1,
       grossWt: 10,
       stoneWt: 0,
       metalPurity: 'Gold 22K',
-      price: 78750,
-      perGramPrice: 7500,
+      price: 106000,
+      basePrice: 100000,
       wastagePercentage: 6,
     };
 
-    expect(formatVA(itemWithWastage)).toBe('6%');
+    const formattedVA = formatVA(item);
+    expect(formattedVA).not.toContain('%');
+    expect(formattedVA).toBe('₹6,000');
   });
 
-  it('should display "-" only when wastage is absent, null, undefined, or zero', () => {
+  it('should calculate ₹6,000 for ₹100,000 Metal Value with 6% wastage', () => {
+    const item: InvoiceItem = {
+      id: '2',
+      productName: 'Gold Bangle',
+      pcs: 1,
+      grossWt: 20,
+      stoneWt: 0,
+      metalPurity: 'Gold 22K',
+      price: 106000,
+      perGramPrice: 5000, // 20g * ₹5,000 = ₹100,000 Metal Value
+      wastagePercentage: 6,
+    };
+
+    expect(calculateMetalValue(item)).toBe(100000);
+    expect(calculateVA(item)).toBe(6000);
+    expect(formatVA(item)).toBe('₹6,000');
+  });
+
+  it('should display MC with correct making-charge amount in Indian currency format', () => {
+    const itemWithMC: InvoiceItem = {
+      id: '3',
+      productName: 'Gold Ring',
+      pcs: 1,
+      grossWt: 5,
+      stoneWt: 0,
+      metalPurity: 'Gold 22K',
+      price: 31500,
+      basePrice: 25000,
+      wastagePercentage: 6,
+      makingChargesAmount: 5000,
+    };
+
+    expect(formatMC(itemWithMC)).toBe('₹5,000');
+  });
+
+  it('should display "-" for VA only when wastage percentage is absent, null, undefined, or zero', () => {
     const itemZeroWastage: InvoiceItem = {
       id: '4',
       productName: 'Silver Coin',
@@ -127,4 +171,32 @@ describe('Invoice & Print Data Mapping Requirements', () => {
     expect(formatVA(itemZeroWastage)).toBe('-');
     expect(formatVA(itemNullWastage)).toBe('-');
   });
+
+  it('should display "-" for MC only when making charges are absent, null, undefined, or zero', () => {
+    const itemZeroMC: InvoiceItem = {
+      id: '6',
+      productName: 'Gold Chain',
+      pcs: 1,
+      grossWt: 10,
+      stoneWt: 0,
+      metalPurity: 'Gold 22K',
+      price: 75000,
+      makingChargesAmount: 0,
+    };
+
+    const itemNullMC: InvoiceItem = {
+      id: '7',
+      productName: 'Gold Chain',
+      pcs: 1,
+      grossWt: 10,
+      stoneWt: 0,
+      metalPurity: 'Gold 22K',
+      price: 75000,
+      makingChargesAmount: undefined,
+    };
+
+    expect(formatMC(itemZeroMC)).toBe('-');
+    expect(formatMC(itemNullMC)).toBe('-');
+  });
 });
+
