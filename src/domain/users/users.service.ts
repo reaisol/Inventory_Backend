@@ -1,6 +1,9 @@
 import { AuthenticationService } from '@app/authentication';
 import { User } from '@app/database/entities/user.entity';
 import { Role } from '@app/database/entities/role.entity';
+import { Order } from '@app/database/entities/order.entity';
+import { DailySheet } from '@app/database/entities/daily-sheet.entity';
+import { Expense } from '@app/database/entities/expense.entity';
 import {
   Injectable,
   NotFoundException,
@@ -23,6 +26,12 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+    @InjectRepository(DailySheet)
+    private readonly dailySheetRepository: Repository<DailySheet>,
+    @InjectRepository(Expense)
+    private readonly expenseRepository: Repository<Expense>,
     private readonly authService: AuthenticationService,
   ) {}
 
@@ -170,6 +179,46 @@ export class UsersService {
 
   async remove(id: number): Promise<void> {
     const user = await this.findOne(id);
+
+    // Prevent deletion of the super_admin user
+    const isSuperAdmin = user.roles?.some((r) => r.name === 'super_admin');
+    if (isSuperAdmin) {
+      throw new BadRequestException('The super admin user cannot be deleted');
+    }
+
+    // Find the super_admin user to reassign linked records
+    const superAdminRole = await this.roleRepository.findOne({
+      where: { name: 'super_admin' },
+      relations: ['users'],
+    });
+    const fallbackUser = superAdminRole?.users?.[0];
+
+    if (fallbackUser) {
+      // Reassign orders created by this user to the super_admin
+      await this.orderRepository
+        .createQueryBuilder()
+        .update(Order)
+        .set({ userId: fallbackUser.id })
+        .where('userId = :id', { id })
+        .execute();
+
+      // Reassign daily sheets created by this user to the super_admin
+      await this.dailySheetRepository
+        .createQueryBuilder()
+        .update(DailySheet)
+        .set({ createdBy: fallbackUser.id })
+        .where('createdBy = :id', { id })
+        .execute();
+
+      // Reassign expenses recorded by this user to the super_admin
+      await this.expenseRepository
+        .createQueryBuilder()
+        .update(Expense)
+        .set({ userId: fallbackUser.id })
+        .where('userId = :id', { id })
+        .execute();
+    }
+
     await this.userRepository.remove(user);
   }
 
