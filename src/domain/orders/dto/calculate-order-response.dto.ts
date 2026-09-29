@@ -37,6 +37,14 @@ export class OrderItemCalculationDto {
   @ApiProperty()
   @Expose()
   stoneCost: number;
+
+  @ApiProperty({ nullable: true })
+  @Expose()
+  pricePerGram?: number;
+
+  @ApiProperty({ nullable: true })
+  @Expose()
+  wastagePercentage?: number;
 }
 
 export class ExchangeCalculationDto {

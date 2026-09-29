@@ -166,6 +166,7 @@ export class OrdersService {
             totalPrice: priceCalculation.totalPrice,
             quantity: quantity,
             soldWeightGm: soldWeight,
+            pricePerGram: metalPrice.pricePerGram,
           });
 
           orderItems.push(orderItem);
@@ -194,6 +195,7 @@ export class OrdersService {
             totalPrice: priceCalculation.totalPrice,
             quantity: 1,
             soldWeightGm: product.grossWeightGm,
+            pricePerGram: metalPrice.pricePerGram,
           });
 
           orderItems.push(orderItem);
@@ -416,6 +418,11 @@ export class OrdersService {
       let priceCalculation;
       let soldWeight = product.grossWeightGm;
 
+      // Get current metal price
+      const metalPrice = await this.getCurrentMetalPrice(
+        product.metalPurityId,
+      );
+
       if (product.isBulkItem) {
         // Use custom sold weight if provided, otherwise calculate from weightPerItem × quantity
         if (orderItemDto.soldWeightGm && orderItemDto.soldWeightGm > 0) {
@@ -432,11 +439,6 @@ export class OrdersService {
             `Sold weight (${soldWeight}g) exceeds available weight (${product.grossWeightGm}g) for product ${product.name}`,
           );
         }
-
-        // Get current metal price
-        const metalPrice = await this.getCurrentMetalPrice(
-          product.metalPurityId,
-        );
 
         // Create a temporary product object with sold weight for price calculation
         const tempProduct = {
@@ -455,11 +457,6 @@ export class OrdersService {
           );
         }
 
-        // Get current metal price
-        const metalPrice = await this.getCurrentMetalPrice(
-          product.metalPurityId,
-        );
-
         // Calculate product price
         priceCalculation = calculateProductPrice(product, metalPrice);
       }
@@ -474,6 +471,8 @@ export class OrdersService {
         wastageAmount: priceCalculation.wastageAmount,
         makingChargesAmount: priceCalculation.makingChargesAmount,
         stoneCost: priceCalculation.stoneCost,
+        pricePerGram: metalPrice.pricePerGram,
+        wastagePercentage: product.wastagePercentage,
       });
 
       subtotal += priceCalculation.basePrice + priceCalculation.stoneCost;

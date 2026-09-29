@@ -33,6 +33,15 @@ class ProductDto {
 
   @ApiProperty()
   name: string;
+
+  @ApiProperty({ nullable: true })
+  grossWeightGm?: number;
+
+  @ApiProperty({ nullable: true })
+  stoneWeightGm?: number;
+
+  @ApiProperty({ nullable: true })
+  wastagePercentage?: number;
 }
 
 class OrderItemDto {
@@ -57,6 +66,9 @@ class OrderItemDto {
 
   @ApiProperty({ nullable: true })
   soldWeightGm?: number;
+
+  @ApiProperty({ nullable: true })
+  pricePerGram?: number;
 }
 
 class ExchangeDto {

@@ -36,6 +36,9 @@ export class OrderItem {
   @Column('decimal', { precision: 10, scale: 3, nullable: true })
   soldWeightGm: number;
 
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  pricePerGram: number;
+
   @CreateDateColumn()
   createdAt: Date;
 
