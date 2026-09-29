@@ -30,11 +30,9 @@ export class AuthService {
 
     const tokens = await this.authenticationService.generateTokens(user);
 
-    // Remove roles from user
-    const { roles: _, ...userWithoutRoles } = user;
     return {
       ...tokens,
-      user: userWithoutRoles,
+      user,
     };
   }
 

@@ -172,8 +172,9 @@ export const PERMISSIONS: Record<string, Permission> = {
     action: 'update',
     resource: 'expenses',
   },
-  delete_expense: {
-    action: 'delete',
-    resource: 'expenses',
+  // Dashboard permissions
+  read_dashboard: {
+    action: 'read',
+    resource: 'dashboard',
   },
 };

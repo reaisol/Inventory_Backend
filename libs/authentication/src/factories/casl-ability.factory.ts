@@ -34,22 +34,28 @@ export class CaslAbilityFactory {
   async createForUser(user: CurrentUser): Promise<{
     ability: AppAbility;
   }> {
-    // Handle both user.id and user.sub for compatibility
-    const userRoles = user.roles || [];
+    const rawRoles = user.roles || [];
+    const roleIds = rawRoles
+      .map((r: any) => (typeof r === 'number' ? r : r.id))
+      .filter((id: any) => typeof id === 'number' && !isNaN(id));
 
-    if (!userRoles || userRoles.length === 0) {
+    if (!roleIds || roleIds.length === 0) {
       return { ability: this.createEmptyAbility() };
     }
 
     const roles = await this.roleRepository.find({
-      where: { id: In(userRoles) },
+      where: { id: In(roleIds) },
     });
 
     if (!roles || roles.length === 0) {
       return { ability: this.createEmptyAbility() };
     }
 
-    const permissionNames = roles.flatMap((role) => role.permissions);
+    const isSuperAdmin = roles.some((r) => r.name === 'super_admin');
+    const permissionNames = isSuperAdmin
+      ? Object.keys(PERMISSIONS)
+      : Array.from(new Set(roles.flatMap((role) => role.permissions || [])));
+
     const policies: AbilityPolicy[] = [];
     for (const permissionName of permissionNames) {
       const permission = PERMISSIONS[permissionName];

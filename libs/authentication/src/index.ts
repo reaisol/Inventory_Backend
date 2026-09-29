@@ -14,3 +14,4 @@ export {
 } from './decorators/current-user.decorator';
 export * from './handler-definition';
 export * from './permissions';
+export * from './interfaces/casl';

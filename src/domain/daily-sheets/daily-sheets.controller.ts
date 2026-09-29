@@ -30,19 +30,23 @@ import { MonthlyBalanceSheetResponseDto } from './dto/monthly-balance-sheet-resp
 import { PaginatedResponse } from '../../shared/interfaces/pagination-response.interface';
 import {
   JwtAuthGuard,
+  PoliciesGuard,
+  CheckPolicies,
   CurrentUserDecorator,
   CurrentUser,
 } from '@app/authentication';
+import { ReadSettingPolicyHandler } from '../settings/handlers/setting-policy.handler';
 
 @ApiTags('daily-sheets')
 @ApiBearerAuth('JWT-auth')
 @Controller('daily-sheets')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PoliciesGuard)
 export class DailySheetsController {
   constructor(private readonly dailySheetsService: DailySheetsService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all daily sheets with pagination' })
+  @CheckPolicies(new ReadSettingPolicyHandler())
   @ApiResponse({
     status: 200,
     description: 'Daily sheets retrieved successfully',
