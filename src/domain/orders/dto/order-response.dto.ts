@@ -42,6 +42,9 @@ class ProductDto {
 
   @ApiProperty({ nullable: true })
   wastagePercentage?: number;
+
+  @ApiProperty({ nullable: true })
+  stoneCost?: number;
 }
 
 class OrderItemDto {
