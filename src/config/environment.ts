@@ -68,12 +68,21 @@ export function validateEnvironment(config: Environment): Environment {
   return config;
 }
 
-export function getAllowedCorsOrigins(config: Environment): string[] {
+export function getAllowedCorsOrigins(
+  config: Environment,
+): string[] | string | boolean {
+  if (config.CORS_ORIGIN?.trim() === '*') {
+    return true;
+  }
+
   const configuredOrigins = config.CORS_ORIGIN?.split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
 
   if (configuredOrigins?.length) {
+    if (configuredOrigins.includes('*')) {
+      return true;
+    }
     return configuredOrigins;
   }
 
