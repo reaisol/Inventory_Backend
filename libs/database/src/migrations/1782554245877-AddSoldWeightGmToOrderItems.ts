@@ -7,7 +7,7 @@ export class AddSoldWeightGmToOrderItems1782554245877
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "order_items" ADD "soldWeightGm" numeric(10,3)`,
+      `ALTER TABLE "order_items" ADD COLUMN IF NOT EXISTS "soldWeightGm" numeric(10,3)`,
     );
   }
 

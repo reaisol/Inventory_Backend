@@ -7,7 +7,7 @@ export class AddPricePerGramToOrderItems1782554245878
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "order_items" ADD "pricePerGram" numeric(10,2)`,
+      `ALTER TABLE "order_items" ADD COLUMN IF NOT EXISTS "pricePerGram" numeric(10,2)`,
     );
   }
 
