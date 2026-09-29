@@ -52,9 +52,57 @@ export class CaslAbilityFactory {
     }
 
     const isSuperAdmin = roles.some((r) => r.name === 'super_admin');
-    const permissionNames = isSuperAdmin
-      ? Object.keys(PERMISSIONS)
-      : Array.from(new Set(roles.flatMap((role) => role.permissions || [])));
+    const isSalesManager = roles.some((r) => r.name === 'sales_manager');
+    const isInventoryManager = roles.some((r) => r.name === 'inventory_manager');
+
+    let permissionSet = new Set<string>();
+
+    if (isSuperAdmin) {
+      permissionSet = new Set(Object.keys(PERMISSIONS));
+    } else {
+      // Gather permissions from DB roles
+      roles.forEach((r) => (r.permissions || []).forEach((p) => permissionSet.add(p)));
+
+      // Enforce baseline permissions for default system roles
+      if (isSalesManager) {
+        [
+          'create_customer',
+          'read_customer',
+          'update_customer',
+          'delete_customer',
+          'create_order',
+          'read_order',
+          'update_order',
+          'cancel_order',
+        ].forEach((p) => permissionSet.add(p));
+      }
+
+      if (isInventoryManager) {
+        [
+          'create_product',
+          'read_product',
+          'update_product',
+          'delete_product',
+          'calculate_product_price',
+          'read_metal_type',
+          'read_metal_purity',
+          'create_metal_price',
+          'read_metal_price',
+          'update_metal_price',
+          'create_category',
+          'read_category',
+          'update_category',
+          'delete_category',
+          'read_setting',
+          'update_setting',
+          'create_expense',
+          'read_expense',
+          'update_expense',
+        ].forEach((p) => permissionSet.add(p));
+      }
+    }
+
+    const permissionNames = Array.from(permissionSet);
 
     const policies: AbilityPolicy[] = [];
     for (const permissionName of permissionNames) {
