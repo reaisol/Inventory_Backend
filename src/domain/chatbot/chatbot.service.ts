@@ -44,7 +44,7 @@ export class ChatbotService {
 
   private buildPrompt(question: string, context?: string): string {
     return `
-  You are a business data assistant for Bhargava Jewells.
+  You are a business data assistant for Sri Bhargava Jewellers.
   Answer in 1-2 short sentences using only the numbers from the context.
   No introductions. No "As the Jewells Assistant". No filler words.
   Just the direct answer with the relevant data.
