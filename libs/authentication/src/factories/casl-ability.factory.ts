@@ -54,6 +54,7 @@ export class CaslAbilityFactory {
     const isSuperAdmin = roles.some((r) => r.name === 'super_admin');
     const isSalesManager = roles.some((r) => r.name === 'sales_manager');
     const isInventoryManager = roles.some((r) => r.name === 'inventory_manager');
+    const isStoreManager = roles.some((r) => r.name === 'store_manager');
 
     let permissionSet = new Set<string>();
 
@@ -98,6 +99,41 @@ export class CaslAbilityFactory {
           'create_expense',
           'read_expense',
           'update_expense',
+        ].forEach((p) => permissionSet.add(p));
+      }
+
+      if (isStoreManager) {
+        // Full Inventory Manager capabilities
+        [
+          'create_product',
+          'read_product',
+          'update_product',
+          'delete_product',
+          'calculate_product_price',
+          'read_metal_type',
+          'read_metal_purity',
+          'create_metal_price',
+          'read_metal_price',
+          'update_metal_price',
+          'create_category',
+          'read_category',
+          'update_category',
+          'delete_category',
+          'read_setting',
+          'update_setting',
+          'create_expense',
+          'read_expense',
+          'update_expense',
+          // Full Sales Manager capabilities
+          'create_customer',
+          'read_customer',
+          'update_customer',
+          'delete_customer',
+          'create_order',
+          'read_order',
+          'update_order',
+          'cancel_order',
+          // Explicitly excluded: read_dashboard, *_user, *_role, assign_role
         ].forEach((p) => permissionSet.add(p));
       }
     }

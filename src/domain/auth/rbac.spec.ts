@@ -19,8 +19,8 @@ describe('RBAC Access Control & Permission Guards', () => {
   let reflector: Reflector;
   let guard: PoliciesGuard;
 
-  // Mock roles repository
-  const mockRoles = [
+  // Base mock roles (ids 1–3). The store_manager (id: 4) is added per-test in section 5.
+  const baseRoles = [
     {
       id: 1,
       name: 'super_admin',
@@ -56,12 +56,18 @@ describe('RBAC Access Control & Permission Guards', () => {
         'update_setting',
       ],
     },
+    // store_manager with empty DB permissions — the CASL factory injects all capabilities
+    {
+      id: 4,
+      name: 'store_manager',
+      permissions: [],
+    },
   ];
 
   const mockRoleRepo = {
     find: jest.fn().mockImplementation(async ({ where }) => {
       const ids = where?.id?._value || [];
-      return mockRoles.filter((r) => ids.includes(r.id));
+      return baseRoles.filter((r) => ids.includes(r.id));
     }),
   };
 
@@ -71,6 +77,7 @@ describe('RBAC Access Control & Permission Guards', () => {
     guard = new PoliciesGuard(reflector, caslAbilityFactory);
   });
 
+  // ─────────────────────────────────────────────────────────────────────────────
   describe('1. Dashboard Access Control', () => {
     it('should GRANT access to Dashboard for Super Admin', async () => {
       const user = { id: 1, email: 'admin@test.com', roles: [1] } as any;
@@ -94,6 +101,7 @@ describe('RBAC Access Control & Permission Guards', () => {
     });
   });
 
+  // ─────────────────────────────────────────────────────────────────────────────
   describe('2. Sales Manager Access Rules', () => {
     it('should ALLOW Sales Manager to access Orders / Billing', async () => {
       const user = { id: 2, email: 'sales@test.com', roles: [2] } as any;
@@ -122,6 +130,7 @@ describe('RBAC Access Control & Permission Guards', () => {
     });
   });
 
+  // ─────────────────────────────────────────────────────────────────────────────
   describe('3. Inventory Manager Access Rules', () => {
     it('should ALLOW Inventory Manager to access Products', async () => {
       const user = { id: 3, email: 'inv@test.com', roles: [3] } as any;
@@ -156,6 +165,7 @@ describe('RBAC Access Control & Permission Guards', () => {
     });
   });
 
+  // ─────────────────────────────────────────────────────────────────────────────
   describe('4. Super Admin User & Role Management', () => {
     it('should ALLOW Super Admin to delete users', async () => {
       const user = { id: 1, email: 'admin@test.com', roles: [1] } as any;
@@ -186,7 +196,67 @@ describe('RBAC Access Control & Permission Guards', () => {
     });
   });
 
-  describe('5. Multi-Role Combined Permissions', () => {
+  // ─────────────────────────────────────────────────────────────────────────────
+  describe('5. Store Manager Access Rules', () => {
+    // store_manager (id: 4) has empty DB permissions.
+    // The CASL factory baseline block injects the full combined permission set.
+    const storeManagerUser = { id: 10, email: 'store@test.com', roles: [4] } as any;
+
+    // ── Inventory permissions ──────────────────────────────────────────────────
+    it('should ALLOW Store Manager to read and create Products (Inventory)', async () => {
+      const { ability } = await caslAbilityFactory.createForUser(storeManagerUser);
+      expect(new ReadProductPolicyHandler().handle(ability)).toBe(true);
+      expect(new CreateProductPolicyHandler().handle(ability)).toBe(true);
+    });
+
+    it('should ALLOW Store Manager to read Metals (for pricing)', async () => {
+      const { ability } = await caslAbilityFactory.createForUser(storeManagerUser);
+      expect(new ReadMetalPolicyHandler().handle(ability)).toBe(true);
+    });
+
+    it('should ALLOW Store Manager to read and manage Categories', async () => {
+      const { ability } = await caslAbilityFactory.createForUser(storeManagerUser);
+      expect(new ReadCategoryPolicyHandler().handle(ability)).toBe(true);
+    });
+
+    it('should ALLOW Store Manager to access Settings (Metal Prices & Categories tabs)', async () => {
+      const { ability } = await caslAbilityFactory.createForUser(storeManagerUser);
+      expect(new ReadSettingPolicyHandler().handle(ability)).toBe(true);
+    });
+
+    // ── Sales / Billing permissions ───────────────────────────────────────────
+    it('should ALLOW Store Manager to read and create Orders (Billing)', async () => {
+      const { ability } = await caslAbilityFactory.createForUser(storeManagerUser);
+      expect(new ReadOrderPolicyHandler().handle(ability)).toBe(true);
+      expect(new CreateOrderPolicyHandler().handle(ability)).toBe(true);
+    });
+
+    it('should ALLOW Store Manager to read and create Customers', async () => {
+      const { ability } = await caslAbilityFactory.createForUser(storeManagerUser);
+      expect(new ReadCustomerPolicyHandler().handle(ability)).toBe(true);
+      expect(new CreateCustomerPolicyHandler().handle(ability)).toBe(true);
+    });
+
+    // ── Denied permissions ────────────────────────────────────────────────────
+    it('should DENY Store Manager access to Dashboard', async () => {
+      const { ability } = await caslAbilityFactory.createForUser(storeManagerUser);
+      const handler = new ReadDashboardPolicyHandler();
+      expect(handler.handle(ability)).toBe(false);
+    });
+
+    it('should DENY Store Manager from deleting users (Super Admin only)', async () => {
+      const { ability } = await caslAbilityFactory.createForUser(storeManagerUser);
+      expect(() => new DeleteUserPolicyHandler().handle(ability)).toThrow();
+    });
+
+    it('should DENY Store Manager from reading/managing roles (Super Admin only)', async () => {
+      const { ability } = await caslAbilityFactory.createForUser(storeManagerUser);
+      expect(() => new ReadRolePolicyHandler().handle(ability)).toThrow();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  describe('6. Multi-Role Combined Permissions', () => {
     it('should COMBINE permissions for user with both Sales and Inventory Manager roles', async () => {
       const user = { id: 4, email: 'multi@test.com', roles: [2, 3] } as any;
       const { ability } = await caslAbilityFactory.createForUser(user);
@@ -208,7 +278,8 @@ describe('RBAC Access Control & Permission Guards', () => {
     });
   });
 
-  describe('6. PoliciesGuard Integration Test', () => {
+  // ─────────────────────────────────────────────────────────────────────────────
+  describe('7. PoliciesGuard Integration Test', () => {
     it('should throw ForbiddenException when user lacks permission on guarded route', async () => {
       const mockUser = { id: 2, email: 'sales@test.com', roles: [2] };
       const context: Partial<ExecutionContext> = {

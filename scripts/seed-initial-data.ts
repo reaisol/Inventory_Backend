@@ -260,6 +260,52 @@ async function seedData() {
       console.log('✓ Sales Manager role already exists');
     }
 
+    // Store Manager - Combined Inventory + Sales capabilities (no dashboard, no user management)
+    let storeManager = await roleRepo.findOne({
+      where: { name: 'store_manager' },
+    });
+    if (!storeManager) {
+      storeManager = roleRepo.create({
+        name: 'store_manager',
+        permissions: [
+          // Full Inventory Manager capabilities
+          'create_product',
+          'read_product',
+          'update_product',
+          'delete_product',
+          'calculate_product_price',
+          'read_metal_type',
+          'read_metal_purity',
+          'create_metal_price',
+          'read_metal_price',
+          'update_metal_price',
+          'create_category',
+          'read_category',
+          'update_category',
+          'delete_category',
+          'read_setting',
+          'update_setting',
+          'create_expense',
+          'read_expense',
+          'update_expense',
+          // Full Sales Manager capabilities
+          'create_customer',
+          'read_customer',
+          'update_customer',
+          'delete_customer',
+          'create_order',
+          'read_order',
+          'update_order',
+          'cancel_order',
+          // Explicitly excluded: read_dashboard, *_user, *_role, assign_role
+        ],
+      });
+      storeManager = await roleRepo.save(storeManager);
+      console.log('✓ Store Manager role created');
+    } else {
+      console.log('✓ Store Manager role already exists');
+    }
+
     //  create a user with the super admin role
     let superAdminUser = await userRepo.findOne({
       where: { email: 'bhargava@example.com' },
